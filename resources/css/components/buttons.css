@@ -1,0 +1,33 @@
+@import '../tailwind-base.css';
+
+.btn {
+    @apply inline-flex items-center justify-center px-6 py-3 font-semibold rounded-lg transition duration-200;
+}
+
+.btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700 shadow-sm;
+}
+
+.btn-primary:hover {
+    @apply shadow-md transform -translate-y-0.5;
+}
+
+.btn-secondary {
+    @apply bg-transparent border-2 border-white text-white hover:bg-white hover:bg-opacity-10;
+}
+
+.btn-outline {
+    @apply bg-transparent border-2 border-blue-600 text-blue-600 hover:bg-blue-50;
+}
+
+.btn-outline:hover {
+    @apply shadow-sm transform -translate-y-0.5;
+}
+
+.btn-sm {
+    @apply px-4 py-2 text-sm;
+}
+
+.btn-lg {
+    @apply px-8 py-4 text-lg;
+}

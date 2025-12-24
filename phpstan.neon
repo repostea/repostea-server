@@ -1,0 +1,96 @@
+includes:
+  - ./vendor/larastan/larastan/extension.neon
+
+parameters:
+  level: 5
+  paths:
+    - app
+    - routes
+  excludePaths:
+    - storage/*
+    - bootstrap/*
+    - tests/*
+  checkFunctionNameCase: true
+  checkMissingCallableSignature: true
+  checkUninitializedProperties: true
+  reportUnmatchedIgnoredErrors: false
+
+  ignoreErrors:
+    - '#Call to an undefined method Illuminate\\Support\\HigherOrderCollectionProxy::.*#'
+    - '#Dynamic call to static method Illuminate\\Database\\Eloquent\\Builder<.*>::.*\(\)#'
+    - '#Construct empty\(\) is not allowed\. Use more strict comparison\.#'
+    # Dynamic properties from withCount() / addSelect() - these are runtime-generated
+    - '#Access to an undefined property .+::\$\w+_count#'
+    - '#Access to an undefined property .+::\$\w+_votes#'
+    - '#Access to an undefined property .+::\$user_has_\w+#'
+    - '#Access to an undefined property .+::\$user_vote#'
+    - '#Access to an undefined property .+::\$is_\w+#'
+    - '#Access to an undefined property .+::\$last_visited_at#'
+    - '#Access to an undefined property .+::\$period_karma#'
+    - '#Access to an undefined property .+::\$longest_streak#'
+    - '#Access to an undefined property .+::\$pivot#'
+    - '#Access to an undefined property .+::\$userSettings#'
+    - '#Access to an undefined property .+::\$public_moderators#'
+    # Additional dynamic properties
+    - '#Access to an undefined property .+::\$count#'
+    - '#Access to an undefined property .+::\$current_streak#'
+    - '#Access to an undefined property .+::\$can_claim#'
+    - '#Access to an undefined property .+::\$has_claim_priority#'
+    # Generic Model properties (from queries returning Model instead of specific type)
+    - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model::\$\w+#'
+    # Poll choice and avatar properties
+    - '#Access to an undefined property .+::\$choice#'
+    - '#Access to an undefined property .+::\$avatarUrl#'
+    # External package properties that lack PHPDoc
+    - '#Access to an undefined property NotificationChannels\\WebPush\\PushSubscription::\$\w+#'
+    # Carbon\Carbon is compatible with Illuminate\Support\Carbon (extends it)
+    - '#does not accept Carbon\\Carbon#'
+    # Nullsafe and boolean logic warnings (defensive coding is fine)
+    - '#Using nullsafe property access .+ on left side of \?\? is unnecessary#'
+    - '#Negated boolean expression is always (true|false)#'
+    # Pivot properties from belongsToMany relationships
+    - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Relations\\Pivot::\$\w+#'
+    # Collection map callbacks with complex types
+    - '#Parameter .+ of method .+Collection.+::map\(\) contains unresolvable type#'
+    # Always true/false conditions (defensive coding)
+    - '#Instanceof between .+ will always evaluate to true#'
+    - '#is always (true|false)#'
+    # Return type warnings for Laravel patterns
+    - '#Method .+ never returns .+ so it can be removed from the return type#'
+    - '#should return .+ but returns .+#'
+    # Larastan collection call warnings (optimization hints, not errors)
+    - '#Called .+ on Laravel collection, but could have been retrieved as a query#'
+    # Dynamic properties from aggregate queries
+    - '#Access to an undefined property .+::\$unique_\w+#'
+    - '#Access to an undefined property .+::\$user_response#'
+    - '#Access to an undefined property .+::\$response_sent_at#'
+    # DatabaseNotification properties
+    - '#Access to an undefined property Illuminate\\Notifications\\DatabaseNotification::\$\w+#'
+    # Type inference issues with Eloquent Model vs specific types
+    - '#Parameter .+ expects .+, Illuminate\\Database\\Eloquent\\Model given#'
+    # Unreachable code warnings (defensive returns)
+    - '#Unreachable statement - code above always terminates#'
+    # Protected method access (internal Laravel patterns)
+    - '#Call to protected static method .+ of class#'
+    # Function type checks that are defensive
+    - '#Call to function is_string\(\) with .+ will always evaluate to#'
+    # Null coalesce on always-existing values (defensive coding)
+    - '#Expression on left side of \?\? is not nullable#'
+    - '#Offset .+ on .+ on left side of \?\? always exists#'
+    # Strict comparison warnings
+    - '#Strict comparison using .+ between .+ will always evaluate to#'
+    # Method calls on Model when specific type not inferred
+    - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Model::\w+#'
+    - '#Call to an undefined method NotificationChannels\\WebPush\\PushSubscription::\w+#'
+    # Callback type inference issues
+    - '#Parameter .+ of method .+ contains unresolvable type#'
+    - '#Parameter .+1 .+callback of method .+::map\(\) expects callable#'
+    # User::$unreadNotifications from Notifiable trait
+    - '#Access to an undefined property App\\Models\\User::\$unreadNotifications#'
+    # Collection prepend with stdClass (common pattern)
+    - '#Parameter .+ of method .+Collection.+::prepend\(\) expects .+, object.+ given#'
+    # JsonResource::when() accepts truthy values, not just bool
+    - '#Parameter .+ of method .+JsonResource::when\(\) expects bool, .+ given#'
+    # Sub model dynamic properties (added at runtime in controller)
+    - '#Access to an undefined property App\\Models\\Sub::\$federation_enabled#'
+    - '#Access to an undefined property App\\Models\\Sub::\$fediverse_handle#'

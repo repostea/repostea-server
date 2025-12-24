@@ -1,0 +1,126 @@
+{
+    "name": "repostea/api",
+    "type": "project",
+    "description": "Repostea - Content aggregation platform",
+    "keywords": ["laravel", "api", "content-aggregation"],
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "php": "^8.2",
+        "abraham/twitteroauth": "^8.1",
+        "intervention/image": "^3.0",
+        "landrok/activitypub": "^0.8.1",
+        "laravel-notification-channels/webpush": "^10.3",
+        "laravel/fortify": "^1.25",
+        "laravel/framework": "^12.0",
+        "laravel/reverb": "^1.6",
+        "laravel/sanctum": "^4.0",
+        "laravel/tinker": "^2.10.1",
+        "league/commonmark": "^2.7",
+        "ryangjchandler/laravel-cloudflare-turnstile": "^2.0",
+        "sentry/sentry-laravel": "^4.13",
+        "spatie/laravel-feed": "^4.4"
+    },
+    "require-dev": {
+        "barryvdh/laravel-ide-helper": "^3.6",
+        "fakerphp/faker": "^1.23",
+        "fragly/laravel-security-tools": "^1.0",
+        "laracasts/cypress": "^3.03",
+        "larastan/larastan": "^3.4",
+        "laravel/breeze": "^2.3",
+        "laravel/pail": "^1.2.2",
+        "laravel/pint": "^1.13",
+        "laravel/sail": "^1.41",
+        "laravel/telescope": "^5.15",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.6",
+        "pestphp/pest": "^3.8",
+        "pestphp/pest-plugin-laravel": "^3.1",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "rector/rector": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        },
+        "files": [
+            "app/Helpers/language.php",
+            "app/Helpers/StringHelper.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi",
+            "@setup-hooks"
+        ],
+        "post-install-cmd": [
+            "@setup-hooks"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "setup-hooks": [
+            "@php -r \"shell_exec('git config core.hooksPath .githooks');\"",
+            "@php -r \"if (DIRECTORY_SEPARATOR === '/') shell_exec('chmod +x .githooks/*');\""
+        ],
+        "quality": [
+            "vendor/bin/pint --test",
+            "vendor/bin/phpstan analyse --memory-limit=1G",
+            "vendor/bin/pest tests/Unit/Services/MediaServiceTest.php"
+        ],
+        "quality:basic": [
+            "vendor/bin/pint --test",
+            "vendor/bin/pest tests/Unit/Services/MediaServiceTest.php"
+        ],
+        "quality-fix": [
+            "vendor/bin/pint"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan migrate --graceful --ansi"
+        ],
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74,#86efac,#f472b6\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan reverb:start\" \"npm run dev\" \"cd ../client && pnpm run dev\" --names='server,queue,reverb,vite,nuxt'"
+        ],
+        "deploy": [
+            "bash ../deploy.sh"
+        ],
+        "deploy:publish": [
+            "bash ../deploy.sh --publish-only"
+        ],
+        "deploy:server": [
+            "bash ../deploy.sh --server-only"
+        ],
+        "deploy:client": [
+            "bash ../deploy.sh --client-only"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

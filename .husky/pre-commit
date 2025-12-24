@@ -1,0 +1,9 @@
+echo "Running Pint (code formatting)..."
+./vendor/bin/pint
+
+if [ $? -ne 0 ]; then
+  echo "Code formatting failed. Please fix the issues and try again."
+  exit 1
+fi
+
+echo "Code formatting passed!"
