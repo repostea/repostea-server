@@ -8,6 +8,7 @@ use const PHP_INT_MAX;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invitation;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class InvitationController extends Controller
@@ -15,7 +16,7 @@ final class InvitationController extends Controller
     /**
      * Get user's invitations.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -48,7 +49,7 @@ final class InvitationController extends Controller
     /**
      * Create a new invitation.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -101,7 +102,7 @@ final class InvitationController extends Controller
     /**
      * Delete an invitation.
      */
-    public function destroy(Request $request, Invitation $invitation)
+    public function destroy(Request $request, Invitation $invitation): JsonResponse
     {
         $user = $request->user();
 

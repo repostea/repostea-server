@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property int $id
@@ -47,13 +48,18 @@ final class UserStreak extends Model
         'last_activity_date' => 'date',
     ];
 
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // Calculate karma multiplier based on streak
-    public function getKarmaMultiplierAttribute()
+    /**
+     * Calculate karma multiplier based on streak.
+     */
+    public function getKarmaMultiplierAttribute(): float
     {
         if ($this->current_streak >= 365) {
             return 3.0;

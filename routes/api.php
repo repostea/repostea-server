@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AdminPostRelationshipController;
 use App\Http\Controllers\Api\AdminController;
-use App\Http\Controllers\Api\AdminImageSettingsController;
 use App\Http\Controllers\Api\AgoraController;
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiPasswordController;
 use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\Api\CommentListController;
 use App\Http\Controllers\Api\EmailChangeController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\ImageController;
@@ -22,10 +22,12 @@ use App\Http\Controllers\Api\MbinAuthController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\MediaMetadataController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NotificationPreferencesController;
 use App\Http\Controllers\Api\PollController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\PostRelationshipController;
 use App\Http\Controllers\Api\PreferencesController;
+use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\RankingsController;
 use App\Http\Controllers\Api\RealtimeController;
 use App\Http\Controllers\Api\RelationshipVoteController;
@@ -35,12 +37,15 @@ use App\Http\Controllers\Api\SealController;
 use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\SubController;
+use App\Http\Controllers\Api\SubMembershipController;
+use App\Http\Controllers\Api\SubModerationController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\SystemSettingsController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TelegramAuthController;
 use App\Http\Controllers\Api\TransparencyController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\V1\ActivityFeedController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -70,8 +75,9 @@ Route::prefix('v1')->group(static function (): void {
         Route::get('/stats', [RealtimeController::class, 'stats']);
     });
 
-    // Auth endpoints - login has its own rate limiting in controller
-    Route::post('/login', [ApiAuthController::class, 'login']);
+    // Auth endpoints
+    Route::post('/login', [ApiAuthController::class, 'login'])
+        ->middleware('throttle:10,1'); // 10 attempts per minute
     Route::post('/guest-login', [ApiAuthController::class, 'guestLogin'])
         ->middleware('throttle:10,1'); // 10 attempts per minute
     Route::post('/register', [RegisteredUserController::class, 'store'])
@@ -180,11 +186,11 @@ Route::prefix('v1')->group(static function (): void {
     Route::get('/preferences', [PreferencesController::class, 'index']);
     Route::post('/preferences', [PreferencesController::class, 'store']);
 
-    Route::get('/comments', [CommentController::class, 'getAll']);
+    Route::get('/comments', [CommentListController::class, 'getAll']);
     Route::get('/posts/{post}/comments', [CommentController::class, 'index']);
     Route::get('/comments/{comment}/vote-stats', [CommentController::class, 'voteStats']);
-    Route::get('/comments/recent', [CommentController::class, 'recent']);
-    Route::get('/comments/tops', [CommentController::class, 'tops']);
+    Route::get('/comments/recent', [CommentListController::class, 'recent']);
+    Route::get('/comments/tops', [CommentListController::class, 'tops']);
 
     // Post relationships (public read, auth required for write)
     Route::get('/posts/{post}/relationships', [PostRelationshipController::class, 'index']);
@@ -206,11 +212,11 @@ Route::prefix('v1')->group(static function (): void {
     Route::get('/tags/id/{id}', [TagController::class, 'showById']);
     Route::get('/tags/{tag}', [TagController::class, 'show']);
     Route::get('/tags/{tag}/posts', [TagController::class, 'posts']);
-    Route::get('/users/search', [UserController::class, 'searchUsers'])
+    Route::get('/users/search', [UserProfileController::class, 'searchUsers'])
         ->middleware('throttle:30,1'); // 30 searches per minute
-    Route::get('/users/by-username/{username}', [UserController::class, 'getByUsername']);
-    Route::get('/users/{username}/posts', [UserController::class, 'getUserPosts']);
-    Route::get('/users/{username}/comments', [UserController::class, 'getUserComments']);
+    Route::get('/users/by-username/{username}', [UserProfileController::class, 'getByUsername']);
+    Route::get('/users/{username}/posts', [UserProfileController::class, 'getUserPosts']);
+    Route::get('/users/{username}/comments', [UserProfileController::class, 'getUserComments']);
     Route::get('/users/{user}/karma', [KarmaController::class, 'show']);
 
     // Rankings endpoints (public)
@@ -222,6 +228,8 @@ Route::prefix('v1')->group(static function (): void {
     Route::get('/users/{userId}/karma-history', [RankingsController::class, 'userKarmaHistory']);
 
     // Image serving endpoint (public, with cache)
+    // Two routes: one with optional size for backward compatibility, one without
+    Route::get('/images/{hash}', [ImageController::class, 'serve']);
     Route::get('/images/{hash}/{size}', [ImageController::class, 'serve']);
 
     // Email verification endpoint - requires auth but NOT email verification
@@ -298,13 +306,17 @@ Route::prefix('v1')->group(static function (): void {
         Route::post('/agora/{id}/vote', [AgoraController::class, 'vote'])->middleware('action.rate.limit:vote');
         Route::delete('/agora/{id}/vote', [AgoraController::class, 'unvote']);
 
-        // Image upload routes
-        Route::post('/user/avatar', [ImageController::class, 'uploadAvatar']);
+        // Image upload routes (rate limited: 10 uploads per minute)
+        Route::post('/user/avatar', [ImageController::class, 'uploadAvatar'])
+            ->middleware('throttle:10,1');
         Route::delete('/user/avatar', [ImageController::class, 'deleteAvatar']);
-        Route::post('/posts/{post}/thumbnail', [ImageController::class, 'uploadThumbnail']);
-        Route::post('/posts/{post}/thumbnail-from-url', [ImageController::class, 'uploadThumbnailFromUrl']);
+        Route::post('/posts/{post}/thumbnail', [ImageController::class, 'uploadThumbnail'])
+            ->middleware('throttle:10,1');
+        Route::post('/posts/{post}/thumbnail-from-url', [ImageController::class, 'uploadThumbnailFromUrl'])
+            ->middleware('throttle:10,1');
         Route::delete('/posts/{post}/thumbnail', [ImageController::class, 'deleteThumbnail']);
-        Route::post('/images/inline', [ImageController::class, 'uploadInlineImage']);
+        Route::post('/images/inline', [ImageController::class, 'uploadInlineImage'])
+            ->middleware('throttle:10,1');
 
         Route::get('/invitations', [InvitationController::class, 'index']);
         Route::post('/invitations', [InvitationController::class, 'store'])->middleware('action.rate.limit:send_invitation');
@@ -361,51 +373,55 @@ Route::prefix('v1')->group(static function (): void {
         Route::put('/subs/{subId}', [SubController::class, 'update'])->middleware('action.rate.limit:update_profile,10');
         Route::delete('/subs/{subId}', [SubController::class, 'destroy']);
         Route::post('/subs/{subId}/icon', [SubController::class, 'uploadIcon']);
-        Route::post('/subs/{subId}/join', [SubController::class, 'join']);
-        Route::post('/subs/{subId}/leave', [SubController::class, 'leave']);
-        Route::post('/subs/{subId}/membership-requests', [SubController::class, 'createMembershipRequest']);
+
+        // Sub membership endpoints
+        Route::post('/subs/{subId}/join', [SubMembershipController::class, 'join']);
+        Route::post('/subs/{subId}/leave', [SubMembershipController::class, 'leave']);
+        Route::post('/subs/{subId}/membership-requests', [SubMembershipController::class, 'createMembershipRequest']);
+        Route::get('/subs/{subId}/members', [SubMembershipController::class, 'members']);
+        Route::delete('/subs/{subId}/members/{userId}', [SubMembershipController::class, 'removeMember']);
+        Route::get('/subs/{subId}/membership-requests', [SubMembershipController::class, 'membershipRequests']);
+        Route::post('/subs/{subId}/membership-requests/{userId}/approve', [SubMembershipController::class, 'approveMembershipRequest']);
+        Route::post('/subs/{subId}/membership-requests/{userId}/reject', [SubMembershipController::class, 'rejectMembershipRequest']);
 
         // Sub moderation endpoints
-        Route::get('/subs/{subId}/pending-posts', [SubController::class, 'pendingPosts']);
-        Route::post('/subs/{subId}/posts/{postId}/approve', [SubController::class, 'approvePost']);
-        Route::post('/subs/{subId}/posts/{postId}/reject', [SubController::class, 'rejectPost']);
-        Route::get('/subs/{subId}/members', [SubController::class, 'members']);
-        Route::delete('/subs/{subId}/members/{userId}', [SubController::class, 'removeMember']);
-        Route::get('/subs/{subId}/membership-requests', [SubController::class, 'membershipRequests']);
-        Route::post('/subs/{subId}/membership-requests/{userId}/approve', [SubController::class, 'approveMembershipRequest']);
-        Route::post('/subs/{subId}/membership-requests/{userId}/reject', [SubController::class, 'rejectMembershipRequest']);
+        Route::get('/subs/{subId}/pending-posts', [SubModerationController::class, 'pendingPosts']);
+        Route::post('/subs/{subId}/posts/{postId}/approve', [SubModerationController::class, 'approvePost']);
+        Route::post('/subs/{subId}/posts/{postId}/reject', [SubModerationController::class, 'rejectPost']);
 
         // Sub moderators management
-        Route::get('/subs/{subId}/moderators', [SubController::class, 'moderators']);
-        Route::post('/subs/{subId}/moderators', [SubController::class, 'addModerator']);
-        Route::delete('/subs/{subId}/moderators/{userId}', [SubController::class, 'removeModerator']);
+        Route::get('/subs/{subId}/moderators', [SubModerationController::class, 'moderators']);
+        Route::post('/subs/{subId}/moderators', [SubModerationController::class, 'addModerator']);
+        Route::delete('/subs/{subId}/moderators/{userId}', [SubModerationController::class, 'removeModerator']);
 
         // Sub content moderation (hide/unhide posts)
-        Route::get('/subs/{subId}/hidden-posts', [SubController::class, 'hiddenPosts']);
-        Route::post('/subs/{subId}/posts/{postId}/hide', [SubController::class, 'hidePost']);
-        Route::post('/subs/{subId}/posts/{postId}/unhide', [SubController::class, 'unhidePost']);
+        Route::get('/subs/{subId}/hidden-posts', [SubModerationController::class, 'hiddenPosts']);
+        Route::post('/subs/{subId}/posts/{postId}/hide', [SubModerationController::class, 'hidePost']);
+        Route::post('/subs/{subId}/posts/{postId}/unhide', [SubModerationController::class, 'unhidePost']);
 
         // Sub ownership claim (for orphaned subs)
-        Route::get('/subs/{subId}/claim-status', [SubController::class, 'claimStatus']);
-        Route::post('/subs/{subId}/claim', [SubController::class, 'claimOwnership']);
+        Route::get('/subs/{subId}/claim-status', [SubModerationController::class, 'claimStatus']);
+        Route::post('/subs/{subId}/claim', [SubModerationController::class, 'claimOwnership']);
 
         // Notifications endpoints (authenticated)
         Route::get('/notifications/summary', [NotificationController::class, 'getSummary']);
         Route::get('/notifications', [NotificationController::class, 'index']);
 
-        // Push notification settings
-        Route::get('/notifications/vapid-public-key', [NotificationController::class, 'getVapidPublicKey']);
-        Route::get('/notifications/push-subscriptions', [NotificationController::class, 'getPushSubscriptions']);
-        Route::post('/notifications/push-subscription', [NotificationController::class, 'savePushSubscription']);
-        Route::delete('/notifications/push-subscription', [NotificationController::class, 'removePushSubscription']);
-        Route::get('/notifications/preferences', [NotificationController::class, 'getNotificationPreferences']);
-        Route::put('/notifications/preferences', [NotificationController::class, 'updateNotificationPreferences']);
-        Route::post('/notifications/test-push', [NotificationController::class, 'sendTestPush'])
+        // Push subscription management
+        Route::get('/notifications/vapid-public-key', [PushSubscriptionController::class, 'getVapidPublicKey']);
+        Route::get('/notifications/push-subscriptions', [PushSubscriptionController::class, 'getPushSubscriptions']);
+        Route::post('/notifications/push-subscription', [PushSubscriptionController::class, 'savePushSubscription']);
+        Route::delete('/notifications/push-subscription', [PushSubscriptionController::class, 'removePushSubscription']);
+        Route::post('/notifications/test-push', [PushSubscriptionController::class, 'sendTestPush'])
             ->middleware('throttle:3,1'); // Max 3 test notifications per minute
 
+        // Notification preferences
+        Route::get('/notifications/preferences', [NotificationPreferencesController::class, 'getNotificationPreferences']);
+        Route::put('/notifications/preferences', [NotificationPreferencesController::class, 'updateNotificationPreferences']);
+
         // Snooze endpoints
-        Route::post('/notifications/snooze', [NotificationController::class, 'snooze']);
-        Route::delete('/notifications/snooze', [NotificationController::class, 'unsnooze']);
+        Route::post('/notifications/snooze', [NotificationPreferencesController::class, 'snooze']);
+        Route::delete('/notifications/snooze', [NotificationPreferencesController::class, 'unsnooze']);
 
         // Individual notification management
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
@@ -467,12 +483,6 @@ Route::prefix('v1')->group(static function (): void {
             'admin',
         ])
         ->group(static function (): void {
-            // Image settings management
-            Route::get('image-settings', [AdminImageSettingsController::class, 'index']);
-            Route::put('image-settings/{id}', [AdminImageSettingsController::class, 'update']);
-            Route::post('image-settings/batch', [AdminImageSettingsController::class, 'batchUpdate']);
-            Route::post('image-settings/reset', [AdminImageSettingsController::class, 'resetToDefaults']);
-
             // Database management
             Route::get('database/stats', [AdminController::class, 'getDatabaseStats']);
             Route::post('database/backup', [AdminController::class, 'createBackup']);

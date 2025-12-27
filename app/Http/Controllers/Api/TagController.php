@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 
 final class TagController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): mixed
     {
         $query = Tag::query();
 
@@ -53,7 +53,7 @@ final class TagController extends Controller
         });
     }
 
-    public function show($nameOrSlug)
+    public function show($nameOrSlug): mixed
     {
         $cacheKey = 'tag:' . $nameOrSlug;
 
@@ -67,7 +67,7 @@ final class TagController extends Controller
         });
     }
 
-    public function showById($id)
+    public function showById($id): mixed
     {
         $cacheKey = 'tag:id:' . $id;
 
@@ -78,7 +78,7 @@ final class TagController extends Controller
         });
     }
 
-    public function getTagsByCategory($categoryId)
+    public function getTagsByCategory($categoryId): mixed
     {
         $cacheKey = 'tags:category:' . $categoryId;
 
@@ -91,7 +91,7 @@ final class TagController extends Controller
         });
     }
 
-    public function getTagCategories()
+    public function getTagCategories(): mixed
     {
         return Cache::tags(['tags'])->remember('tag_categories_with_tags', now()->addDay(), static function () {
             $categories = TagCategory::with('tags')->get();

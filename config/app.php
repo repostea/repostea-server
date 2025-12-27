@@ -45,6 +45,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Cypress E2E Testing Secret
+    |--------------------------------------------------------------------------
+    |
+    | Optional secret for Cypress E2E test endpoints. If set, requests must
+    | include X-Cypress-Secret header. Only used in local/testing environments.
+    |
+    */
+
+    'cypress_secret' => env('CYPRESS_SECRET'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------
     |

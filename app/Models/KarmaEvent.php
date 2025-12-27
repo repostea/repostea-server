@@ -98,10 +98,7 @@ final class KarmaEvent extends Model
             ->where('start_at', '>', $now);
     }
 
-    /**
-     * @return bool
-     */
-    public function isActive()
+    public function isActive(): bool
     {
         $now = now();
 
@@ -111,9 +108,9 @@ final class KarmaEvent extends Model
     /**
      * Get currently active events.
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return \Illuminate\Database\Eloquent\Collection<int, self>
      */
-    public static function getActiveEvents()
+    public static function getActiveEvents(): \Illuminate\Database\Eloquent\Collection
     {
         $now = now();
 

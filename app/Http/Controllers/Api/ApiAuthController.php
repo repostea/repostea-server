@@ -11,6 +11,7 @@ use App\Models\Achievement;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\GuestNameGenerator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -19,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 
 final class ApiAuthController extends Controller
 {
-    public function login(Request $request)
+    public function login(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'email' => 'required|string',
@@ -100,7 +101,7 @@ final class ApiAuthController extends Controller
         ]);
     }
 
-    public function guestLogin(Request $request)
+    public function guestLogin(Request $request): JsonResponse
     {
         // Check if guest access is enabled
         $guestAccess = SystemSetting::get('guest_access', 'enabled');
@@ -139,14 +140,14 @@ final class ApiAuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 
         return ApiResponse::success(null, __('auth.logout_success'));
     }
 
-    public function user(Request $request)
+    public function user(Request $request): JsonResponse
     {
         $user = $request->user();
         $user->load(['currentLevel', 'streak', 'achievements']);

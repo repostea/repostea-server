@@ -58,7 +58,7 @@ test('uploadImage throws for invalid image type', function (): void {
     $file = UploadedFile::fake()->image('test.jpg', 100, 100);
 
     $this->service->uploadImage($file, 'invalid_type', $this->user->id);
-})->throws(InvalidArgumentException::class, 'No size settings found');
+})->throws(InvalidArgumentException::class, 'Invalid image type');
 
 test('uploadAvatar creates avatar and deletes old one', function (): void {
     $file1 = UploadedFile::fake()->image('avatar1.jpg', 200, 200);
@@ -150,8 +150,8 @@ test('image has correct urls', function (): void {
 
     $urls = $image->getUrls();
 
-    expect($urls)->toHaveKeys(['small', 'medium', 'large', 'is_nsfw']);
-    expect($urls['small'])->toContain($image->hash);
+    expect($urls)->toHaveKeys(['url', 'is_nsfw']);
+    expect($urls['url'])->toContain($image->hash);
     expect($urls['is_nsfw'])->toBeFalse();
 });
 

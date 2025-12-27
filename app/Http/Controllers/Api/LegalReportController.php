@@ -9,6 +9,7 @@ use App\Models\LegalReport;
 use App\Models\Role;
 use App\Notifications\LegalReportReceivedNotification;
 use App\Notifications\NewLegalReportNotification;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
@@ -20,7 +21,7 @@ final class LegalReportController extends Controller
      *
      * This endpoint does NOT require authentication - allows public reporting.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'type' => ['required', 'string', Rule::in([
@@ -80,7 +81,7 @@ final class LegalReportController extends Controller
         ]);
 
         // Notify admins about new legal report
-        $adminRole = Role::where('name', 'admin')->first();
+        $adminRole = Role::with('users')->where('name', 'admin')->first();
         if ($adminRole) {
             foreach ($adminRole->users as $admin) {
                 $admin->notify(new NewLegalReportNotification($report));
@@ -105,7 +106,7 @@ final class LegalReportController extends Controller
     /**
      * Get report status by reference number (public endpoint).
      */
-    public function status(Request $request)
+    public function status(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'reference_number' => 'required|string',

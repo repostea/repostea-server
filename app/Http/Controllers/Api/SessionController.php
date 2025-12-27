@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
 
 final class SessionController extends Controller
@@ -20,8 +19,7 @@ final class SessionController extends Controller
         $user = $request->user();
         $currentTokenId = $user->currentAccessToken()->id;
 
-        $sessions = DB::table('personal_access_tokens')
-            ->where('tokenable_type', get_class($user))
+        $sessions = PersonalAccessToken::where('tokenable_type', get_class($user))
             ->where('tokenable_id', $user->id)
             ->orderByDesc('last_used_at')
             ->get(['id', 'name', 'last_used_at', 'created_at', 'ip_address', 'user_agent'])

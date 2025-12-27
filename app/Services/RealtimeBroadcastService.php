@@ -111,12 +111,12 @@ final class RealtimeBroadcastService
         $channels[] = self::CHANNEL_POST_PREFIX . $post->id;
 
         // Add to frontpage channel if published
-        if ($post->status === 'published') {
+        if ($post->status === Post::STATUS_PUBLISHED) {
             $channels[] = self::CHANNEL_FRONTPAGE;
         }
 
         // Add to pending channel if pending
-        if ($post->status === 'pending') {
+        if ($post->status === Post::STATUS_PENDING) {
             $channels[] = self::CHANNEL_PENDING;
         }
 

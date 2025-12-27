@@ -72,6 +72,14 @@ final class Comment extends Model
 {
     use HasFactory;
 
+    public const STATUS_PUBLISHED = 'published';
+
+    public const STATUS_HIDDEN = 'hidden';
+
+    public const STATUS_DELETED_BY_MODERATOR = 'deleted_by_moderator';
+
+    public const STATUS_DELETED_BY_AUTHOR = 'deleted_by_author';
+
     protected $fillable = [
         'content',
         'user_id',

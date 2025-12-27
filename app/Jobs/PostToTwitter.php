@@ -44,7 +44,7 @@ final class PostToTwitter implements ShouldQueue
             return;
         }
 
-        if ($post->status !== 'published') {
+        if ($post->status !== Post::STATUS_PUBLISHED) {
             Log::info('PostToTwitter: Post not published, skipping', ['post_id' => $this->postId]);
 
             return;

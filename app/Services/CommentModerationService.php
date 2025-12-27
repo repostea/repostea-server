@@ -26,7 +26,7 @@ final class CommentModerationService
     public function hide(Comment $comment, User $moderator, ?string $reason = null): array
     {
         $comment->update([
-            'status' => 'hidden',
+            'status' => Comment::STATUS_HIDDEN,
             'moderation_reason' => $reason,
             'moderated_by' => $moderator->id,
             'moderated_at' => now(),
@@ -47,7 +47,7 @@ final class CommentModerationService
     public function unhide(Comment $comment): array
     {
         $comment->update([
-            'status' => 'published',
+            'status' => Comment::STATUS_PUBLISHED,
             'moderation_reason' => null,
             'moderated_by' => null,
             'moderated_at' => null,
@@ -68,7 +68,7 @@ final class CommentModerationService
     public function deleteByModerator(Comment $comment, User $moderator, ?string $reason = null): array
     {
         $comment->update([
-            'status' => 'deleted_by_moderator',
+            'status' => Comment::STATUS_DELETED_BY_MODERATOR,
             'content' => '[deleted by moderator]',
             'moderation_reason' => $reason,
             'moderated_by' => $moderator->id,
@@ -90,7 +90,7 @@ final class CommentModerationService
     public function restore(Comment $comment): array
     {
         // Only allow restore for hidden or deleted_by_moderator
-        if (! in_array($comment->status, ['hidden', 'deleted_by_moderator'], true)) {
+        if (! in_array($comment->status, [Comment::STATUS_HIDDEN, Comment::STATUS_DELETED_BY_MODERATOR], true)) {
             return [
                 'success' => false,
                 'message' => __('messages.comments.cannot_restore'),
@@ -98,7 +98,7 @@ final class CommentModerationService
         }
 
         $comment->update([
-            'status' => 'published',
+            'status' => Comment::STATUS_PUBLISHED,
             'moderation_reason' => null,
             'moderated_by' => null,
             'moderated_at' => null,
@@ -135,7 +135,7 @@ final class CommentModerationService
      */
     public function isModerated(Comment $comment): bool
     {
-        return in_array($comment->status, ['hidden', 'deleted_by_moderator'], true);
+        return in_array($comment->status, [Comment::STATUS_HIDDEN, Comment::STATUS_DELETED_BY_MODERATOR], true);
     }
 
     /**
@@ -143,7 +143,7 @@ final class CommentModerationService
      */
     public function canRestore(Comment $comment): bool
     {
-        return in_array($comment->status, ['hidden', 'deleted_by_moderator'], true);
+        return in_array($comment->status, [Comment::STATUS_HIDDEN, Comment::STATUS_DELETED_BY_MODERATOR], true);
     }
 
     /**

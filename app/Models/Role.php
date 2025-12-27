@@ -43,7 +43,10 @@ final class Role extends Model
         'description',
     ];
 
-    public function users()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<User, $this>
+     */
+    public function users(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(User::class);
     }

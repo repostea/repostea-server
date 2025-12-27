@@ -58,7 +58,7 @@ final class DeliverPostUpdate implements ShouldQueue
         $this->post->refresh();
 
         // Check if post is still published
-        if ($this->post->status !== 'published') {
+        if ($this->post->status !== Post::STATUS_PUBLISHED) {
             Log::debug('ActivityPub: Post no longer published, skipping update', [
                 'post_id' => $this->post->id,
                 'status' => $this->post->status,

@@ -8,16 +8,15 @@ use App\Http\Controllers\Controller;
 use App\Models\KarmaHistory;
 use App\Models\KarmaLevel;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class KarmaController extends Controller
 {
     /**
      * Show the karma of a specific user.
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function show(User $user)
+    public function show(User $user): JsonResponse
     {
         $karmaData = [
             'user_id' => $user->id,
@@ -65,10 +64,8 @@ final class KarmaController extends Controller
 
     /**
      * Show all karma levels.
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function levels()
+    public function levels(): JsonResponse
     {
         $levels = KarmaLevel::orderBy('required_karma', 'asc')->get();
 
@@ -79,10 +76,8 @@ final class KarmaController extends Controller
 
     /**
      * Show the karma leaderboard.
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function leaderboard(Request $request)
+    public function leaderboard(Request $request): JsonResponse
     {
         $limit = $request->input('limit', 10);
         $page = $request->input('page', 1);

@@ -266,7 +266,7 @@ final class MultiActorActivityPubController extends Controller
             return response('ActivityPub not enabled', 404);
         }
 
-        if ($post->status !== 'published' || $post->deleted_at !== null) {
+        if ($post->status !== Post::STATUS_PUBLISHED || $post->deleted_at !== null) {
             return response()->json(['error' => 'Not found'], 404);
         }
 
@@ -499,7 +499,7 @@ final class MultiActorActivityPubController extends Controller
         }
 
         // Check if post is published
-        if ($post->status !== 'published') {
+        if ($post->status !== Post::STATUS_PUBLISHED) {
             return response()->json(['error' => 'Only published posts can be announced'], 400);
         }
 
@@ -534,7 +534,7 @@ final class MultiActorActivityPubController extends Controller
 
         // Get published posts in this sub that haven't been federated yet
         $posts = Post::where('sub_id', $sub->id)
-            ->where('status', 'published')
+            ->where('status', Post::STATUS_PUBLISHED)
             ->whereDoesntHave('activityPubSettings', function ($query): void {
                 $query->where('is_federated', true);
             })

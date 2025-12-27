@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -16,10 +17,8 @@ final class RankingsController extends Controller
 
     /**
      * Get karma ranking with optional timeframe filter.
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function karma(Request $request)
+    public function karma(Request $request): JsonResponse
     {
         $timeframe = $request->input('timeframe', 'all');
         $limit = min((int) $request->input('limit', 100), 100);
@@ -28,8 +27,8 @@ final class RankingsController extends Controller
         $cacheKey = "rankings:karma:{$timeframe}:{$limit}:{$page}";
 
         $data = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($timeframe, $limit, $page) {
-            $query = User::select('id', 'username', 'display_name', 'avatar', 'avatar_url', 'karma_points', 'highest_level_id')
-                ->with('currentLevel:id,name,badge')
+            $query = User::select('id', 'username', 'display_name', 'avatar', 'avatar_url', 'avatar_image_id', 'karma_points', 'highest_level_id')
+                ->with(['currentLevel:id,name,badge', 'avatarImage'])
                 ->where('is_guest', false)
                 // Only include users who have had real interactions (voted, commented, or posted)
                 ->where(function ($q): void {
@@ -47,9 +46,9 @@ final class RankingsController extends Controller
                         $join->on('users.id', '=', 'daily_karma_stats.user_id')
                             ->where('daily_karma_stats.date', '>=', $dateFilter);
                     })
-                        ->select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.karma_points', 'users.highest_level_id')
+                        ->select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.avatar_image_id', 'users.karma_points', 'users.highest_level_id')
                         ->selectRaw('COALESCE(SUM(daily_karma_stats.karma_earned), 0) as period_karma')
-                        ->groupBy('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.karma_points', 'users.highest_level_id')
+                        ->groupBy('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.avatar_image_id', 'users.karma_points', 'users.highest_level_id')
                         ->having('period_karma', '>', 0)
                         ->orderBy('period_karma', 'desc');
                 } else {
@@ -109,7 +108,7 @@ final class RankingsController extends Controller
                     'id' => $user->id,
                     'username' => $user->username,
                     'display_name' => $user->display_name,
-                    'avatar' => $user->avatar_url ?? $user->avatar,
+                    'avatar' => $user->avatar,
                     'karma_points' => $timeframe !== 'all' && isset($user->period_karma)
                         ? (int) $user->period_karma
                         : $user->karma_points,
@@ -136,10 +135,8 @@ final class RankingsController extends Controller
 
     /**
      * Get posts ranking with optional timeframe filter.
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function posts(Request $request)
+    public function posts(Request $request): JsonResponse
     {
         $timeframe = $request->input('timeframe', 'all');
         $limit = min((int) $request->input('limit', 100), 100);
@@ -150,8 +147,8 @@ final class RankingsController extends Controller
         $data = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($timeframe, $limit, $page) {
             $dateFilter = $this->getDateFilter($timeframe);
 
-            $query = User::select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.karma_points', 'users.highest_level_id')
-                ->with('currentLevel:id,name,badge')
+            $query = User::select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.avatar_image_id', 'users.karma_points', 'users.highest_level_id')
+                ->with(['currentLevel:id,name,badge', 'avatarImage'])
                 ->where('users.is_guest', false);
 
             if ($dateFilter) {
@@ -163,7 +160,7 @@ final class RankingsController extends Controller
                 $query->leftJoin('posts', 'users.id', '=', 'posts.user_id');
             }
 
-            $query->groupBy('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.karma_points', 'users.highest_level_id')
+            $query->groupBy('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.avatar_image_id', 'users.karma_points', 'users.highest_level_id')
                 ->selectRaw('COUNT(posts.id) as posts_count')
                 ->orderBy('posts_count', 'desc')
                 ->having('posts_count', '>', 0);
@@ -187,7 +184,7 @@ final class RankingsController extends Controller
                     'id' => $user->id,
                     'username' => $user->username,
                     'display_name' => $user->display_name,
-                    'avatar' => $user->avatar_url ?? $user->avatar,
+                    'avatar' => $user->avatar,
                     'posts_count' => $user->posts_count,
                     'karma_points' => $user->karma_points,
                     'level' => $user->currentLevel ? [
@@ -213,10 +210,8 @@ final class RankingsController extends Controller
 
     /**
      * Get comments ranking with optional timeframe filter.
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function comments(Request $request)
+    public function comments(Request $request): JsonResponse
     {
         $timeframe = $request->input('timeframe', 'all');
         $limit = min((int) $request->input('limit', 100), 100);
@@ -227,8 +222,8 @@ final class RankingsController extends Controller
         $data = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($timeframe, $limit, $page) {
             $dateFilter = $this->getDateFilter($timeframe);
 
-            $query = User::select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.karma_points', 'users.highest_level_id')
-                ->with('currentLevel:id,name,badge')
+            $query = User::select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.avatar_image_id', 'users.karma_points', 'users.highest_level_id')
+                ->with(['currentLevel:id,name,badge', 'avatarImage'])
                 ->where('users.is_guest', false);
 
             if ($dateFilter) {
@@ -240,7 +235,7 @@ final class RankingsController extends Controller
                 $query->leftJoin('comments', 'users.id', '=', 'comments.user_id');
             }
 
-            $query->groupBy('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.karma_points', 'users.highest_level_id')
+            $query->groupBy('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.avatar_image_id', 'users.karma_points', 'users.highest_level_id')
                 ->selectRaw('COUNT(comments.id) as comments_count')
                 ->orderBy('comments_count', 'desc')
                 ->having('comments_count', '>', 0);
@@ -264,7 +259,7 @@ final class RankingsController extends Controller
                     'id' => $user->id,
                     'username' => $user->username,
                     'display_name' => $user->display_name,
-                    'avatar' => $user->avatar_url ?? $user->avatar,
+                    'avatar' => $user->avatar,
                     'comments_count' => $user->comments_count,
                     'karma_points' => $user->karma_points,
                     'level' => $user->currentLevel ? [
@@ -290,10 +285,8 @@ final class RankingsController extends Controller
 
     /**
      * Get streaks ranking (no timeframe, shows longest streaks).
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function streaks(Request $request)
+    public function streaks(Request $request): JsonResponse
     {
         $limit = min((int) $request->input('limit', 100), 100);
         $page = (int) $request->input('page', 1);
@@ -301,8 +294,8 @@ final class RankingsController extends Controller
         $cacheKey = "rankings:streaks:{$limit}:{$page}";
 
         $data = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($limit, $page) {
-            $query = User::select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.karma_points', 'users.highest_level_id')
-                ->with('currentLevel:id,name,badge')
+            $query = User::select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.avatar_image_id', 'users.karma_points', 'users.highest_level_id')
+                ->with(['currentLevel:id,name,badge', 'avatarImage'])
                 ->join('user_streaks', 'users.id', '=', 'user_streaks.user_id')
                 ->where('users.is_guest', false)
                 ->selectRaw('user_streaks.current_streak, user_streaks.longest_streak')
@@ -326,7 +319,7 @@ final class RankingsController extends Controller
                     'id' => $user->id,
                     'username' => $user->username,
                     'display_name' => $user->display_name,
-                    'avatar' => $user->avatar_url ?? $user->avatar,
+                    'avatar' => $user->avatar,
                     'current_streak' => $user->current_streak,
                     'longest_streak' => $user->longest_streak,
                     'karma_points' => $user->karma_points,
@@ -352,10 +345,8 @@ final class RankingsController extends Controller
 
     /**
      * Get achievements ranking (shows users with most achievements).
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function achievements(Request $request)
+    public function achievements(Request $request): JsonResponse
     {
         $limit = min((int) $request->input('limit', 100), 100);
         $page = (int) $request->input('page', 1);
@@ -363,12 +354,12 @@ final class RankingsController extends Controller
         $cacheKey = "rankings:achievements:{$limit}:{$page}";
 
         $data = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($limit, $page) {
-            $query = User::select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.karma_points', 'users.highest_level_id')
-                ->with('currentLevel:id,name,badge')
+            $query = User::select('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.avatar_image_id', 'users.karma_points', 'users.highest_level_id')
+                ->with(['currentLevel:id,name,badge', 'avatarImage'])
                 ->leftJoin('achievement_user', 'users.id', '=', 'achievement_user.user_id')
                 ->where('users.is_guest', false)
                 ->whereNotNull('achievement_user.unlocked_at')
-                ->groupBy('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.karma_points', 'users.highest_level_id')
+                ->groupBy('users.id', 'users.username', 'users.display_name', 'users.avatar', 'users.avatar_url', 'users.avatar_image_id', 'users.karma_points', 'users.highest_level_id')
                 ->selectRaw('COUNT(achievement_user.achievement_id) as achievements_count')
                 ->orderBy('achievements_count', 'desc')
                 ->having('achievements_count', '>', 0);
@@ -390,7 +381,7 @@ final class RankingsController extends Controller
                     'id' => $user->id,
                     'username' => $user->username,
                     'display_name' => $user->display_name,
-                    'avatar' => $user->avatar_url ?? $user->avatar,
+                    'avatar' => $user->avatar,
                     'achievements_count' => $user->achievements_count,
                     'karma_points' => $user->karma_points,
                     'level' => $user->currentLevel ? [
@@ -428,10 +419,8 @@ final class RankingsController extends Controller
 
     /**
      * Get user's karma history (daily breakdown).
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function userKarmaHistory(Request $request, int $userId)
+    public function userKarmaHistory(Request $request, int $userId): JsonResponse
     {
         $days = min((int) $request->input('days', 30), 365); // Max 1 year
 
@@ -464,10 +453,8 @@ final class RankingsController extends Controller
 
     /**
      * Clear rankings cache (admin only).
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function clearCache()
+    public function clearCache(): JsonResponse
     {
         // Clear all rankings cache keys
         $patterns = ['karma', 'posts', 'comments', 'streaks', 'achievements'];

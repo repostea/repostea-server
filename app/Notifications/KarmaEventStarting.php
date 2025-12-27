@@ -31,14 +31,7 @@ final class KarmaEventStarting extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        // Karma event notifications are only sent via in-app notifications (bell icon)
-        // To enable email notifications, uncomment the code below:
-        // $channels = ['database', 'broadcast'];
-        // if ($notifiable->settings['email_notifications'] ?? false) {
-        //     $channels[] = 'mail';
-        // }
-        // return $channels;
-
+        // In-app notifications only (bell icon + real-time)
         return ['database', 'broadcast'];
     }
 

@@ -7,6 +7,8 @@ namespace App\Models;
 use Eloquent;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * @property int $id
@@ -69,17 +71,23 @@ final class Vote extends Model
         'type',
     ];
 
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function votable()
+    public function votable(): MorphTo
     {
         return $this->morphTo();
     }
 
-    public static function getValidPositiveTypes()
+    /**
+     * @return array<string>
+     */
+    public static function getValidPositiveTypes(): array
     {
         return [
             self::TYPE_DIDACTIC,
@@ -89,7 +97,10 @@ final class Vote extends Model
         ];
     }
 
-    public static function getValidNegativeTypes()
+    /**
+     * @return array<string>
+     */
+    public static function getValidNegativeTypes(): array
     {
         return [
             self::TYPE_INCOMPLETE,

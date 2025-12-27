@@ -35,7 +35,7 @@ final class PostResource extends JsonResource
             'slug' => $this->resource->slug,
             'content' => $this->resource->content,
             'url' => $this->resource->url,
-            'thumbnail_url' => $this->resource->thumbnail_url,
+            'thumbnail_url' => $this->resolveThumbnailUrl(),
             'user' => $user,
             'sub' => $this->when($this->resource->relationLoaded('sub'), function () {
                 if (! $this->resource->sub) {
@@ -64,6 +64,7 @@ final class PostResource extends JsonResource
             'vote_count' => $this->resource->votes_count,
             'comment_count' => $this->resource->comment_count,
             'comments_open' => $this->areCommentsOpen(),
+            'voting_open' => $this->isVotingOpen(),
             'views' => $this->resource->views,
             'total_views' => $this->resource->total_views ?? 0,
             'impressions' => $this->resource->impressions ?? 0,
@@ -176,11 +177,36 @@ final class PostResource extends JsonResource
     {
         $maxAgeDays = (int) config('posts.commenting_max_age_days', 0);
 
-        // 0 means comments are always open
         if ($maxAgeDays === 0) {
             return true;
         }
 
         return (int) $this->resource->created_at->diffInDays(now()) <= $maxAgeDays;
+    }
+
+    /**
+     * Check if voting is still open for this post.
+     */
+    private function isVotingOpen(): bool
+    {
+        $maxAgeDays = (int) config('posts.voting_max_age_days', 7);
+
+        if ($maxAgeDays === 0) {
+            return true;
+        }
+
+        return (int) $this->resource->created_at->diffInDays(now()) <= $maxAgeDays;
+    }
+
+    /**
+     * Get thumbnail URL from images table.
+     */
+    private function resolveThumbnailUrl(): ?string
+    {
+        if ($this->resource->thumbnail_image_id && $this->resource->thumbnailImage) {
+            return $this->resource->thumbnailImage->getUrl();
+        }
+
+        return null;
     }
 }

@@ -8,11 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PostResource;
 use App\Models\KarmaLevel;
 use App\Models\Post;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 final class SyncController extends Controller
 {
-    public function getLastUpdated()
+    public function getLastUpdated(): JsonResponse
     {
         return response()->json([
             'posts' => Post::max('updated_at'),
@@ -20,7 +22,7 @@ final class SyncController extends Controller
         ]);
     }
 
-    public function syncPosts(Request $request)
+    public function syncPosts(Request $request): AnonymousResourceCollection
     {
         $validated = $request->validate([
             'last_sync' => 'required|date',

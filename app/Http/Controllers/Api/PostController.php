@@ -8,10 +8,14 @@ use App\Helpers\ErrorHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ImportPostRequest;
 use App\Http\Requests\PostRequest;
+use App\Http\Requests\SearchPostRequest;
+use App\Http\Requests\UpdatePostStatusRequest;
+use App\Http\Requests\VotePostRequest;
 use App\Http\Resources\PostCollection;
 use App\Http\Resources\PostResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Post;
+use App\Models\PostView;
 use App\Services\PostService;
 use App\Services\PostVoteService;
 use App\Services\ViewService;
@@ -41,20 +45,8 @@ final class PostController extends Controller
         return new PostCollection($posts);
     }
 
-    public function search(Request $request): PostCollection
+    public function search(SearchPostRequest $request): PostCollection
     {
-        $request->validate([
-            'q' => 'required|string|min:2',
-            'content_type' => 'nullable|string|in:text,link,video,audio,poll',
-            'is_featured' => 'nullable|in:true,false,1,0',
-            'search_in_comments' => 'nullable|in:true,false,1,0',
-            'sort_by' => 'nullable|string|in:created_at,votes_count,comment_count,lastActive',
-        ]);
-
-        $request->merge([
-            'search' => $request->input('q'),
-        ]);
-
         $posts = $this->postService->getPosts($request);
 
         return new PostCollection($posts);
@@ -170,33 +162,24 @@ final class PostController extends Controller
         return ApiResponse::success(null, __('messages.posts.deleted'));
     }
 
-    public function updateStatus(Request $request, Post $post): PostResource|JsonResponse
+    public function updateStatus(UpdatePostStatusRequest $request, Post $post): PostResource|JsonResponse
     {
         Gate::authorize('update', $post);
 
-        $validated = $request->validate([
-            'status' => 'required|string|in:published,draft,pending,hidden',
-        ]);
-
         // Don't allow changing status if the post is hidden (only admin can)
-        if ($post->status === 'hidden' && ! auth()->user()->isAdmin()) {
+        if ($post->status === Post::STATUS_HIDDEN && ! auth()->user()->isAdmin()) {
             return response()->json([
                 'message' => __('posts.cannot_change_hidden_status'),
             ], 403);
         }
 
-        $post = $this->postService->updatePostStatus($post, $validated['status']);
+        $post = $this->postService->updatePostStatus($post, $request->validated()['status']);
 
         return new PostResource($post);
     }
 
-    public function vote(Request $request, Post $post): JsonResponse
+    public function vote(VotePostRequest $request, Post $post): JsonResponse
     {
-        $request->validate([
-            'value' => 'required|integer|in:-1,1',
-            'type' => 'nullable|string|in:didactic,interesting,elaborate,funny,incomplete,irrelevant,false,outofplace',
-        ]);
-
         // Check if post is too old for voting
         $maxAgeDays = (int) config('posts.voting_max_age_days', 7);
         if ($post->created_at->diffInDays(now()) > $maxAgeDays) {
@@ -205,9 +188,11 @@ final class PostController extends Controller
             ], 403);
         }
 
+        $validated = $request->validated();
+
         // If type is not provided, use a default value based on the value
-        $value = $request->integer('value');
-        $type = $request->input('type');
+        $value = (int) $validated['value'];
+        $type = $validated['type'] ?? null;
 
         if (empty($type)) {
             $type = $value === 1 ? 'interesting' : 'irrelevant';
@@ -216,8 +201,7 @@ final class PostController extends Controller
         $result = $this->voteService->votePost($post, $value, $type);
 
         // Update last_visited_at when user votes on the post
-        \Illuminate\Support\Facades\DB::table('post_views')
-            ->where('post_id', $post->id)
+        PostView::where('post_id', $post->id)
             ->where('user_id', auth()->id())
             ->update([
                 'last_visited_at' => now(),
@@ -248,7 +232,7 @@ final class PostController extends Controller
         return response()->json($this->voteService->getVoteStats($post));
     }
 
-    public function registerView(Post $post, Request $request)
+    public function registerView(Post $post, Request $request): JsonResponse
     {
         Log::info('PostController: registerView endpoint called', [
             'post_id' => $post->id,
@@ -314,7 +298,7 @@ final class PostController extends Controller
     /**
      * Register impressions for multiple posts (batch endpoint).
      */
-    public function registerImpressions(Request $request)
+    public function registerImpressions(Request $request): JsonResponse
     {
         // Handle both JSON string (legacy) and array formats
         $postIds = $request->input('post_ids');

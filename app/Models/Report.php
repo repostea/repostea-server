@@ -54,6 +54,12 @@ final class Report extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_RESOLVED = 'resolved';
+
+    public const STATUS_DISMISSED = 'dismissed';
+
     protected $fillable = [
         'reported_by',
         'reported_user_id',
@@ -108,7 +114,7 @@ final class Report extends Model
      */
     public function isPending(): bool
     {
-        return $this->status === 'pending';
+        return $this->status === self::STATUS_PENDING;
     }
 
     /**
@@ -116,7 +122,7 @@ final class Report extends Model
      */
     public function isResolved(): bool
     {
-        return $this->status === 'resolved';
+        return $this->status === self::STATUS_RESOLVED;
     }
 
     /**
@@ -125,7 +131,7 @@ final class Report extends Model
     public function resolve(int $moderatorId, ?string $notes = null): void
     {
         $this->update([
-            'status' => 'resolved',
+            'status' => self::STATUS_RESOLVED,
             'reviewed_by' => $moderatorId,
             'moderator_notes' => $notes,
             'reviewed_at' => now(),
@@ -143,7 +149,7 @@ final class Report extends Model
     public function dismiss(int $moderatorId, ?string $notes = null): void
     {
         $this->update([
-            'status' => 'dismissed',
+            'status' => self::STATUS_DISMISSED,
             'reviewed_by' => $moderatorId,
             'moderator_notes' => $notes,
             'reviewed_at' => now(),
@@ -172,7 +178,7 @@ final class Report extends Model
             : $reopenNote;
 
         $this->update([
-            'status' => 'pending',
+            'status' => self::STATUS_PENDING,
             'reviewed_by' => $moderatorId,
             'moderator_notes' => $combinedNotes,
             'reviewed_at' => now(),
@@ -184,7 +190,7 @@ final class Report extends Model
      */
     public function canBeReopened(): bool
     {
-        return in_array($this->status, ['resolved', 'dismissed']);
+        return in_array($this->status, [self::STATUS_RESOLVED, self::STATUS_DISMISSED]);
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Models\Post;
 use App\Models\SealMark;
 use App\Models\Sub;
 use App\Models\Vote;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -20,10 +21,8 @@ final class ActivityFeedController extends Controller
 {
     /**
      * Get the latest activities feed.
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $limit = min($request->input('limit', 100), 500); // Max 500 items
         $offset = $request->input('offset', 0);
@@ -48,7 +47,7 @@ final class ActivityFeedController extends Controller
         $result = Cache::tags(['activity', 'posts'])->remember($cacheKey, 300, function () use ($limit, $offset, $since, $activeTypes) {
             $queries = [];
 
-            // 1. New posts
+            // 1. New posts (exclude drafts)
             if (in_array('new_post', $activeTypes)) {
                 $newPosts = Post::select(
                     DB::raw("'new_post' as activity_type"),
@@ -69,7 +68,8 @@ final class ActivityFeedController extends Controller
                     DB::raw('NULL as agora_message_content'),
                     DB::raw('NULL as sub_name'),
                     DB::raw('NULL as sub_display_name'),
-                );
+                )
+                    ->where('status', Post::STATUS_PUBLISHED);
                 if ($since) {
                     $newPosts->where('created_at', '>=', $since);
                 }
@@ -77,7 +77,7 @@ final class ActivityFeedController extends Controller
                 $queries[] = $newPosts;
             }
 
-            // 2. New votes on posts (anonymous)
+            // 2. New votes on posts (anonymous, exclude drafts)
             if (in_array('post_vote', $activeTypes)) {
                 $postVotes = Vote::select(
                     DB::raw("'post_vote' as activity_type"),
@@ -102,7 +102,8 @@ final class ActivityFeedController extends Controller
                     ->join('posts', function ($join): void {
                         $join->on('votes.votable_id', '=', 'posts.id')
                             ->where('votes.votable_type', '=', 'App\\Models\\Post');
-                    });
+                    })
+                    ->where('posts.status', Post::STATUS_PUBLISHED);
                 if ($since) {
                     $postVotes->where('votes.created_at', '>=', $since);
                 }
@@ -110,7 +111,7 @@ final class ActivityFeedController extends Controller
                 $queries[] = $postVotes;
             }
 
-            // 3. New comments
+            // 3. New comments (exclude hidden/deleted comments and non-published posts)
             if (in_array('new_comment', $activeTypes)) {
                 $newComments = Comment::select(
                     DB::raw("'new_comment' as activity_type"),
@@ -132,7 +133,9 @@ final class ActivityFeedController extends Controller
                     DB::raw('NULL as sub_name'),
                     DB::raw('NULL as sub_display_name'),
                 )
-                    ->join('posts', 'comments.post_id', '=', 'posts.id');
+                    ->join('posts', 'comments.post_id', '=', 'posts.id')
+                    ->where('posts.status', 'published')
+                    ->whereNotIn('comments.status', [Comment::STATUS_HIDDEN, Comment::STATUS_DELETED_BY_MODERATOR]);
                 if ($since) {
                     $newComments->where('comments.created_at', '>=', $since);
                 }
@@ -140,7 +143,7 @@ final class ActivityFeedController extends Controller
                 $queries[] = $newComments;
             }
 
-            // 4. New votes on comments (anonymous)
+            // 4. New votes on comments (anonymous, exclude hidden/deleted comments and non-published posts)
             if (in_array('comment_vote', $activeTypes)) {
                 $commentVotes = Vote::select(
                     DB::raw("'comment_vote' as activity_type"),
@@ -166,7 +169,9 @@ final class ActivityFeedController extends Controller
                         $join->on('votes.votable_id', '=', 'comments.id')
                             ->where('votes.votable_type', '=', 'App\\Models\\Comment');
                     })
-                    ->join('posts', 'comments.post_id', '=', 'posts.id');
+                    ->join('posts', 'comments.post_id', '=', 'posts.id')
+                    ->where('posts.status', 'published')
+                    ->whereNotIn('comments.status', [Comment::STATUS_HIDDEN, Comment::STATUS_DELETED_BY_MODERATOR]);
                 if ($since) {
                     $commentVotes->where('votes.created_at', '>=', $since);
                 }
@@ -174,7 +179,7 @@ final class ActivityFeedController extends Controller
                 $queries[] = $commentVotes;
             }
 
-            // 5. New seals awarded (anonymous)
+            // 5. New seals awarded (anonymous, exclude non-published posts)
             if (in_array('seal_awarded', $activeTypes)) {
                 $newSeals = SealMark::select(
                     DB::raw("'seal_awarded' as activity_type"),
@@ -214,7 +219,8 @@ final class ActivityFeedController extends Controller
                         $join->on('seal_marks.markable_id', '=', 'posts.id')
                             ->where('seal_marks.markable_type', '=', 'App\\Models\\Post')
                             ->orWhereColumn('comments.post_id', 'posts.id');
-                    });
+                    })
+                    ->where('posts.status', Post::STATUS_PUBLISHED);
                 if ($since) {
                     $newSeals->where('seal_marks.created_at', '>=', $since);
                 }
@@ -222,7 +228,7 @@ final class ActivityFeedController extends Controller
                 $queries[] = $newSeals;
             }
 
-            // 6. Posts reaching frontpage
+            // 6. Posts reaching frontpage (only published)
             if (in_array('frontpage', $activeTypes)) {
                 $frontpagePosts = Post::select(
                     DB::raw("'frontpage' as activity_type"),
@@ -244,6 +250,7 @@ final class ActivityFeedController extends Controller
                     DB::raw('NULL as sub_name'),
                     DB::raw('NULL as sub_display_name'),
                 )
+                    ->where('status', Post::STATUS_PUBLISHED)
                     ->whereNotNull('frontpage_at');
                 if ($since) {
                     $frontpagePosts->where('frontpage_at', '>=', $since);
@@ -252,7 +259,7 @@ final class ActivityFeedController extends Controller
                 $queries[] = $frontpagePosts;
             }
 
-            // 7. New Agora messages
+            // 7. New Agora messages (exclude deleted)
             if (in_array('new_agora_message', $activeTypes)) {
                 $newAgoraMessages = AgoraMessage::select(
                     DB::raw("'new_agora_message' as activity_type"),
@@ -273,7 +280,8 @@ final class ActivityFeedController extends Controller
                     'content as agora_message_content',
                     DB::raw('NULL as sub_name'),
                     DB::raw('NULL as sub_display_name'),
-                );
+                )
+                    ->whereNull('deleted_at');
                 if ($since) {
                     $newAgoraMessages->where('created_at', '>=', $since);
                 }
@@ -281,7 +289,7 @@ final class ActivityFeedController extends Controller
                 $queries[] = $newAgoraMessages;
             }
 
-            // 8. Agora votes
+            // 8. Agora votes (exclude deleted messages)
             if (in_array('agora_vote', $activeTypes)) {
                 $agoraVotes = AgoraVote::select(
                     DB::raw("'agora_vote' as activity_type"),
@@ -303,7 +311,8 @@ final class ActivityFeedController extends Controller
                     DB::raw('NULL as sub_name'),
                     DB::raw('NULL as sub_display_name'),
                 )
-                    ->join('agora_messages', 'agora_votes.agora_message_id', '=', 'agora_messages.id');
+                    ->join('agora_messages', 'agora_votes.agora_message_id', '=', 'agora_messages.id')
+                    ->whereNull('agora_messages.deleted_at');
                 if ($since) {
                     $agoraVotes->where('agora_votes.created_at', '>=', $since);
                 }
@@ -311,7 +320,7 @@ final class ActivityFeedController extends Controller
                 $queries[] = $agoraVotes;
             }
 
-            // 9. New subs created
+            // 9. New subs created (exclude private and deleted)
             if (in_array('new_sub', $activeTypes)) {
                 $newSubs = Sub::select(
                     DB::raw("'new_sub' as activity_type"),
@@ -332,7 +341,9 @@ final class ActivityFeedController extends Controller
                     DB::raw('NULL as agora_message_content'),
                     'name as sub_name',
                     'display_name as sub_display_name',
-                );
+                )
+                    ->where('is_private', false)
+                    ->whereNull('deleted_at');
                 if ($since) {
                     $newSubs->where('created_at', '>=', $since);
                 }

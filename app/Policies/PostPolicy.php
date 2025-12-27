@@ -17,7 +17,7 @@ final class PostPolicy
 
     public function view(?User $user, Post $post): bool
     {
-        if ($post->status === 'published') {
+        if ($post->status === Post::STATUS_PUBLISHED) {
             return true;
         }
 

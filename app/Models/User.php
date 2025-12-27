@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use const PHP_INT_MAX;
-
+use App\Models\Concerns\HasBans;
+use App\Models\Concerns\HasFederation;
+use App\Models\Concerns\HasInvitations;
+use App\Models\Concerns\HasKarma;
+use App\Models\Concerns\HasNotificationPreferences;
+use App\Models\Concerns\HasRoles;
+use App\Models\Concerns\HasSavedLists;
 use App\Notifications\EmailVerificationNotification;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Auth\Passwords\CanResetPassword;
@@ -178,17 +183,41 @@ use NotificationChannels\WebPush\HasPushSubscriptions;
  */
 final class User extends Authenticatable implements CanResetPasswordContract, MustVerifyEmail
 {
+    // Laravel framework traits
     use CanResetPassword;
 
     use HasApiTokens;
 
+    // Application-specific traits
+    use HasBans;
+
     use HasFactory;
 
+    use HasFederation;
+
+    use HasInvitations;
+
+    use HasKarma;
+
+    use HasNotificationPreferences;
+
     use HasPushSubscriptions;
+
+    use HasRoles;
+
+    use HasSavedLists;
 
     use Notifiable;
 
     use SoftDeletes;
+
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [
         'username',
@@ -232,6 +261,9 @@ final class User extends Authenticatable implements CanResetPasswordContract, Mu
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'email_change_token',
     ];
 
     protected $casts = [
@@ -248,11 +280,11 @@ final class User extends Authenticatable implements CanResetPasswordContract, Mu
         'federated_account_created_at' => 'datetime',
     ];
 
-    public function getAvatarAttribute()
+    public function getAvatarAttribute(): ?string
     {
         // If user has migrated to new image system, return URL from images table
         if ($this->avatar_image_id && $this->avatarImage) {
-            return $this->avatarImage->getUrl('medium');
+            return $this->avatarImage->getUrl();
         }
 
         // Fallback to old URL system for backward compatibility
@@ -294,6 +326,10 @@ final class User extends Authenticatable implements CanResetPasswordContract, Mu
         $this->notify(new EmailVerificationNotification());
     }
 
+    // =========================================================================
+    // Relationships
+    // =========================================================================
+
     public function currentLevel(): BelongsTo
     {
         return $this->belongsTo(KarmaLevel::class, 'highest_level_id');
@@ -324,55 +360,6 @@ final class User extends Authenticatable implements CanResetPasswordContract, Mu
         return $this->hasMany(Vote::class);
     }
 
-    public function calculateCurrentLevel()
-    {
-        return KarmaLevel::where('required_karma', '<=', $this->karma_points)
-            ->orderBy('required_karma', 'desc')
-            ->first();
-    }
-
-    public function updateKarma(int $points)
-    {
-        $previousLevelId = $this->highest_level_id;
-
-        $this->karma_points += $points;
-        if ($this->karma_points < 0) {
-            $this->karma_points = 0;
-        }
-
-        $currentLevel = $this->calculateCurrentLevel();
-
-        if ($currentLevel && ($this->highest_level_id === null || $currentLevel->id > $this->highest_level_id)) {
-            $this->highest_level_id = $currentLevel->id;
-
-            $this->save();
-
-            // Only send notification if it's not the initial level (karma 0) and level changed
-            if ($previousLevelId !== $currentLevel->id && $currentLevel->required_karma > 0) {
-                event(new \App\Events\KarmaLevelUp($this, $currentLevel));
-                $this->notify(new \App\Notifications\KarmaLevelUp($currentLevel));
-            }
-
-            return $this;
-        }
-
-        $this->save();
-
-        return $this;
-    }
-
-    public function getBadge()
-    {
-        $currentLevel = $this->currentLevel()->first();
-
-        return $currentLevel ? $currentLevel->badge : null;
-    }
-
-    public function streak(): HasOne
-    {
-        return $this->hasOne(UserStreak::class);
-    }
-
     public function achievements(): BelongsToMany
     {
         return $this->belongsToMany(Achievement::class)
@@ -380,306 +367,9 @@ final class User extends Authenticatable implements CanResetPasswordContract, Mu
             ->withTimestamps();
     }
 
-    public function getKarmaMultiplierAttribute()
-    {
-        $streak = $this->streak()->first();
-        $streakMultiplier = $streak ? $streak->karma_multiplier : 1.0;
-
-        return $streakMultiplier;
-    }
-
-    public function karmaHistory(): HasMany
-    {
-        return $this->hasMany(KarmaHistory::class);
-    }
-
-    public function recordKarma(int $amount, string $source, $sourceId = null, $description = null)
-    {
-        return KarmaHistory::record($this, $amount, $source, $sourceId, $description);
-    }
-
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class);
-    }
-
-    public function hasRole($role)
-    {
-        if (is_string($role)) {
-            return $this->roles()->where('slug', $role)->exists();
-        }
-
-        return $role->intersect($this->roles()->get())->count() > 0;
-    }
-
-    public function isAdmin()
-    {
-        return $this->hasRole('admin');
-    }
-
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class);
-    }
-
-    public function savedLists(): HasMany
-    {
-        return $this->hasMany(SavedList::class);
-    }
-
-    public function getFavoritesListAttribute()
-    {
-        $list = $this->savedLists()->where('type', 'favorite')
-            ->where('user_id', $this->id)
-            ->first();
-
-        if (! $list) {
-            $list = $this->savedLists()->create([
-                'name' => 'Favorites',
-                'type' => 'favorite',
-                'is_public' => false,
-                'slug' => 'favorites',
-            ]);
-        }
-
-        return $list;
-    }
-
-    public function getReadLaterListAttribute()
-    {
-        $list = $this->savedLists()->where('type', 'read_later')
-            ->where('user_id', $this->id)
-            ->first();
-
-        if (! $list) {
-            $list = $this->savedLists()->create([
-                'name' => 'read-later',
-                'type' => 'read_later',
-                'is_public' => false,
-                'slug' => 'read-later',
-            ]);
-        }
-
-        return $list;
-    }
-
-    public function hasFavorite(int $postId): bool
-    {
-        return $this->favorites_list->posts()->where('post_id', $postId)->exists();
-    }
-
-    public function hasReadLater(int $postId): bool
-    {
-        return $this->read_later_list->posts()->where('post_id', $postId)->exists();
-    }
-
-    public function hasSavedInList(int $postId, int $listId): bool
-    {
-        return $this->savedLists()
-            ->where('id', $listId)
-            ->whereHas('posts', static function ($query) use ($postId): void {
-                $query->where('post_id', $postId);
-            })
-            ->exists();
-    }
-
-    public function bans(): HasMany
-    {
-        return $this->hasMany(UserBan::class);
-    }
-
-    public function strikes(): HasMany
-    {
-        return $this->hasMany(UserStrike::class);
-    }
-
-    public function isBanned(): bool
-    {
-        return $this->bans()
-            ->where('is_active', true)
-            ->where(function ($query): void {
-                $query->whereNull('expires_at')
-                    ->orWhere('expires_at', '>', now());
-            })
-            ->exists();
-    }
-
-    public function isModerator(): bool
-    {
-        return $this->hasRole('moderator') || $this->hasRole('admin');
-    }
-
-    /**
-     * Check if user account is approved.
-     */
-    public function isApproved(): bool
-    {
-        return $this->status === 'approved';
-    }
-
-    /**
-     * Check if user account is pending approval.
-     */
-    public function isPending(): bool
-    {
-        return $this->status === 'pending';
-    }
-
-    /**
-     * Check if user account is rejected.
-     */
-    public function isRejected(): bool
-    {
-        return $this->status === 'rejected';
-    }
-
-    /**
-     * Scope to filter only approved users.
-     */
-    public function scopeApproved($query)
-    {
-        return $query->where('status', 'approved');
-    }
-
-    /**
-     * Scope to filter only pending users.
-     */
-    public function scopePending($query)
-    {
-        return $query->where('status', 'pending');
-    }
-
-    /**
-     * Scope to filter only rejected users.
-     */
-    public function scopeRejected($query)
-    {
-        return $query->where('status', 'rejected');
-    }
-
-    /**
-     * Invitations created by the user.
-     */
-    public function invitations(): HasMany
-    {
-        return $this->hasMany(Invitation::class, 'created_by');
-    }
-
-    /**
-     * Get user's invitation limit.
-     * Uses custom limit if set, otherwise calculates based on karma.
-     */
-    public function getInvitationLimit(): int
-    {
-        if ($this->invitation_limit !== null) {
-            return $this->invitation_limit;
-        }
-
-        if ($this->hasRole('admin') && config('invitations.admin_unlimited')) {
-            return PHP_INT_MAX;
-        }
-
-        if ($this->hasRole('moderator')) {
-            return config('invitations.moderator_limit', 50);
-        }
-
-        $karmaLimits = config('invitations.karma_limits', [0 => 5]);
-        $karma = $this->karma_points ?? 0;
-        $limit = config('invitations.default_limit', 5);
-
-        foreach ($karmaLimits as $threshold => $karmaLimit) {
-            if ($karma >= $threshold) {
-                $limit = $karmaLimit;
-            }
-        }
-
-        return $limit;
-    }
-
-    /**
-     * Get number of invitations created by user.
-     */
-    public function getInvitationCount(): int
-    {
-        return $this->invitations()->count();
-    }
-
-    /**
-     * Get number of remaining invitations.
-     */
-    public function getRemainingInvitations(): int
-    {
-        $limit = $this->getInvitationLimit();
-
-        if ($limit === PHP_INT_MAX) {
-            return PHP_INT_MAX;
-        }
-
-        return max(0, $limit - $this->getInvitationCount());
-    }
-
-    /**
-     * Check if user can create an invitation.
-     */
-    public function canCreateInvitation(): array
-    {
-        if ($this->is_guest && ! config('invitations.allow_guest_invitations')) {
-            return ['can' => false, 'reason' => 'Guest users cannot create invitations'];
-        }
-
-        if (config('invitations.require_verified_email') && ! $this->hasVerifiedEmail()) {
-            return ['can' => false, 'reason' => 'Email verification required'];
-        }
-
-        $minAge = config('invitations.minimum_account_age_days', 0);
-        if ($minAge > 0 && $this->created_at->diffInDays(now()) < $minAge) {
-            return ['can' => false, 'reason' => "Account must be at least {$minAge} days old"];
-        }
-
-        $minKarma = config('invitations.minimum_karma', 0);
-        if (($this->karma_points ?? 0) < $minKarma) {
-            return ['can' => false, 'reason' => "Minimum {$minKarma} karma required"];
-        }
-
-        $remaining = $this->getRemainingInvitations();
-        if ($remaining <= 0 && $remaining !== PHP_INT_MAX) {
-            return ['can' => false, 'reason' => 'Invitation limit reached'];
-        }
-
-        return ['can' => true, 'reason' => null];
-    }
-
-    /**
-     * Check if the user account has been deleted.
-     */
-    public function isDeleted(): bool
-    {
-        return $this->is_deleted === true;
-    }
-
-    /**
-     * Get the display name for the user, or "Usuario eliminado #123" if deleted.
-     */
-    public function getDisplayNameAttribute(): string
-    {
-        if ($this->is_deleted) {
-            return 'Usuario eliminado #' . $this->deletion_number;
-        }
-
-        return $this->attributes['display_name'] ?? $this->username;
-    }
-
-    /**
-     * Get the username for display purposes.
-     * Returns "[deleted]" for deleted users (Reddit style).
-     */
-    public function getDisplayUsername(): string
-    {
-        if ($this->is_deleted || $this->trashed()) {
-            return '[deleted]';
-        }
-
-        return $this->username;
     }
 
     /**
@@ -688,14 +378,6 @@ final class User extends Authenticatable implements CanResetPasswordContract, Mu
     public function avatarImage(): BelongsTo
     {
         return $this->belongsTo(Image::class, 'avatar_image_id');
-    }
-
-    /**
-     * Get the user preferences.
-     */
-    public function preferences(): HasOne
-    {
-        return $this->hasOne(UserPreference::class);
     }
 
     /**
@@ -724,21 +406,68 @@ final class User extends Authenticatable implements CanResetPasswordContract, Mu
         return $this->hasMany(SealMark::class);
     }
 
+    // =========================================================================
+    // Status Methods
+    // =========================================================================
+
     /**
-     * ActivityPub/Federation settings for this user.
+     * Check if user account is approved.
      */
-    public function activityPubSettings(): HasOne
+    public function isApproved(): bool
     {
-        return $this->hasOne(ActivityPubUserSettings::class);
+        return $this->status === self::STATUS_APPROVED;
     }
 
     /**
-     * ActivityPub actor for this user (for multi-actor federation).
+     * Check if user account is pending approval.
      */
-    public function activityPubActor(): HasOne
+    public function isPending(): bool
     {
-        return $this->hasOne(ActivityPubActor::class, 'entity_id')
-            ->where('actor_type', 'user');
+        return $this->status === self::STATUS_PENDING;
+    }
+
+    /**
+     * Check if user account is rejected.
+     */
+    public function isRejected(): bool
+    {
+        return $this->status === self::STATUS_REJECTED;
+    }
+
+    /**
+     * Check if the user account has been deleted.
+     */
+    public function isDeleted(): bool
+    {
+        return $this->is_deleted === true;
+    }
+
+    // =========================================================================
+    // Scopes
+    // =========================================================================
+
+    /**
+     * Scope to filter only approved users.
+     */
+    public function scopeApproved($query)
+    {
+        return $query->where('status', self::STATUS_APPROVED);
+    }
+
+    /**
+     * Scope to filter only pending users.
+     */
+    public function scopePending($query)
+    {
+        return $query->where('status', self::STATUS_PENDING);
+    }
+
+    /**
+     * Scope to filter only rejected users.
+     */
+    public function scopeRejected($query)
+    {
+        return $query->where('status', self::STATUS_REJECTED);
     }
 
     /**
@@ -749,110 +478,38 @@ final class User extends Authenticatable implements CanResetPasswordContract, Mu
         return $query->where('is_deleted', false);
     }
 
+    // =========================================================================
+    // Display & Presentation
+    // =========================================================================
+
     /**
-     * Check if user is currently snoozed (temporary silence).
+     * Get the display name for the user, or "Usuario eliminado #123" if deleted.
      */
-    public function isSnoozed(): bool
+    public function getDisplayNameAttribute(): string
     {
-        $prefs = $this->preferences;
-        if (! $prefs || $prefs->snoozed_until === null) {
-            return false;
+        if ($this->is_deleted) {
+            return 'Usuario eliminado #' . $this->deletion_number;
         }
 
-        return $prefs->snoozed_until->isFuture();
+        return $this->attributes['display_name'] ?? $this->username;
     }
 
     /**
-     * Check if current time is within user's quiet hours.
+     * Get the username for display purposes.
+     * Returns "[deleted]" for deleted users (Reddit style).
      */
-    public function isWithinQuietHours(): bool
+    public function getDisplayUsername(): string
     {
-        $prefs = $this->preferences;
-        if (! $prefs || ! $prefs->quiet_hours_enabled) {
-            return false;
+        if ($this->is_deleted || $this->trashed()) {
+            return '[deleted]';
         }
 
-        if ($prefs->quiet_hours_start === null || $prefs->quiet_hours_end === null) {
-            return false;
-        }
-
-        $timezone = $prefs->timezone ?? 'Europe/Madrid';
-        $now = now($timezone);
-        $start = $now->copy()->setTimeFromTimeString($prefs->quiet_hours_start);
-        $end = $now->copy()->setTimeFromTimeString($prefs->quiet_hours_end);
-
-        // Handle overnight quiet hours (e.g., 23:00 to 08:00)
-        if ($start->gt($end)) {
-            return $now->gte($start) || $now->lte($end);
-        }
-
-        return $now->between($start, $end);
+        return $this->username;
     }
 
-    /**
-     * Check if user should receive instant push for a specific category.
-     */
-    public function shouldReceiveInstantPush(string $category): bool
-    {
-        // First check snooze and quiet hours
-        if ($this->isSnoozed() || $this->isWithinQuietHours()) {
-            return false;
-        }
-
-        $prefs = $this->preferences;
-        if (! $prefs) {
-            return false;
-        }
-
-        // Check if push is enabled globally
-        $notificationPrefs = $prefs->notification_preferences ?? [];
-        $pushEnabled = $notificationPrefs['push']['enabled'] ?? false;
-
-        if (! $pushEnabled) {
-            return false;
-        }
-
-        // Check specific category
-        $instantPrefs = $notificationPrefs['push']['instant'] ?? [];
-
-        return $instantPrefs[$category] ?? false;
-    }
-
-    /**
-     * Get user's notification preferences with defaults.
-     */
-    public function getNotificationPreferences(): array
-    {
-        $prefs = $this->preferences;
-        $defaults = [
-            'push' => [
-                'enabled' => false,
-                'instant' => [
-                    'comment_replies' => true,
-                    'post_comments' => true,
-                    'mentions' => true,
-                    'agora_messages' => true,
-                    'agora_replies' => true,
-                    'agora_mentions' => true,
-                    'achievements' => false,
-                    'karma_events' => false,
-                    'system' => true,
-                ],
-            ],
-            'digest' => [
-                'enabled' => false,
-                'include_popular_posts' => true,
-                'include_activity_summary' => true,
-                'include_subscribed_subs' => true,
-            ],
-        ];
-
-        if (! $prefs) {
-            return $defaults;
-        }
-
-        return array_replace_recursive($defaults, $prefs->notification_preferences ?? []);
-    }
+    // =========================================================================
+    // Email Change
+    // =========================================================================
 
     /**
      * Check if user has a pending email change.
@@ -883,73 +540,5 @@ final class User extends Authenticatable implements CanResetPasswordContract, Mu
         }
 
         return $this->email_change_requested_at->addHours(24)->isPast();
-    }
-
-    /**
-     * Check if user is a federated user (logged in via Mastodon/Fediverse).
-     */
-    public function isFederated(): bool
-    {
-        return $this->federated_id !== null;
-    }
-
-    /**
-     * Get the full federated handle (e.g., "@user@mastodon.social").
-     */
-    public function getFederatedHandleAttribute(): ?string
-    {
-        if (! $this->isFederated()) {
-            return null;
-        }
-
-        return '@' . $this->federated_username . '@' . $this->federated_instance;
-    }
-
-    /**
-     * Scope to filter only federated users.
-     */
-    public function scopeFederated($query)
-    {
-        return $query->whereNotNull('federated_id');
-    }
-
-    /**
-     * Scope to filter only local (non-federated) users.
-     */
-    public function scopeLocal($query)
-    {
-        return $query->whereNull('federated_id');
-    }
-
-    /**
-     * Find a user by their federated identity.
-     */
-    public static function findByFederatedId(string $federatedId): ?self
-    {
-        return self::where('federated_id', $federatedId)->first();
-    }
-
-    /**
-     * Check if user logged in via Telegram.
-     */
-    public function isTelegramUser(): bool
-    {
-        return $this->telegram_id !== null;
-    }
-
-    /**
-     * Scope to filter only Telegram users.
-     */
-    public function scopeTelegram($query)
-    {
-        return $query->whereNotNull('telegram_id');
-    }
-
-    /**
-     * Check if user is a social login user (Mastodon, Telegram, etc.).
-     */
-    public function isSocialLoginUser(): bool
-    {
-        return $this->isFederated() || $this->isTelegramUser();
     }
 }

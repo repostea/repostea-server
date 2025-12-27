@@ -62,7 +62,7 @@ final class DeliverActivityPubPost implements ShouldQueue
             return;
         }
 
-        if ($this->post->status !== 'published') {
+        if ($this->post->status !== Post::STATUS_PUBLISHED) {
             Log::debug("ActivityPub: Post {$this->post->id} is not published (status: {$this->post->status}), skipping");
 
             return;

@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Models\PostRelationship;
 use App\Models\RelationshipVote;
-use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Log;

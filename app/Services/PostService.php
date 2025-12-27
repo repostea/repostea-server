@@ -98,7 +98,7 @@ final class PostService
             $count = Cache::tags(['posts', "user_{$userId}_pending"])->remember($cacheKey, $cacheTtl, function () use ($hours, $userId) {
                 return Post::where('created_at', '>=', now()->subHours($hours))
                     ->whereNull('frontpage_at')
-                    ->where('status', 'published')
+                    ->where('status', Post::STATUS_PUBLISHED)
                     ->whereHas('user', function ($query): void {
                         $query->where('is_deleted', '!=', true)
                             ->orWhereNull('is_deleted');
@@ -121,7 +121,7 @@ final class PostService
         $count = Cache::tags(['posts'])->remember("posts_pending_count_{$hours}h", 3600, function () use ($hours) {
             return Post::where('created_at', '>=', now()->subHours($hours))
                 ->whereNull('frontpage_at')
-                ->where('status', 'published')
+                ->where('status', Post::STATUS_PUBLISHED)
                 ->whereHas('user', function ($query): void {
                     $query->where('is_deleted', '!=', true)
                         ->orWhereNull('is_deleted');
@@ -144,7 +144,7 @@ final class PostService
 
         if ($post !== null) {
             // Check if post is hidden or draft and user is not the author
-            if (($post->status === 'hidden' || $post->status === 'draft') && (! Auth::check() || Auth::id() !== $post->user_id)) {
+            if (($post->status === Post::STATUS_HIDDEN || $post->status === Post::STATUS_DRAFT) && (! Auth::check() || Auth::id() !== $post->user_id)) {
                 return null; // Return null to trigger 404 or "content removed" message
             }
             $this->preparePostForDisplay($post);
@@ -159,7 +159,7 @@ final class PostService
 
         if ($post !== null) {
             // Check if post is hidden or draft and user is not the author
-            if (($post->status === 'hidden' || $post->status === 'draft') && (! Auth::check() || Auth::id() !== $post->user_id)) {
+            if (($post->status === Post::STATUS_HIDDEN || $post->status === Post::STATUS_DRAFT) && (! Auth::check() || Auth::id() !== $post->user_id)) {
                 return null; // Return null to trigger 404 or "content removed" message
             }
             $this->preparePostForDisplay($post);
@@ -174,7 +174,7 @@ final class PostService
 
         if ($post !== null) {
             // Check if post is hidden or draft and user is not the author
-            if (($post->status === 'hidden' || $post->status === 'draft') && (! Auth::check() || Auth::id() !== $post->user_id)) {
+            if (($post->status === Post::STATUS_HIDDEN || $post->status === Post::STATUS_DRAFT) && (! Auth::check() || Auth::id() !== $post->user_id)) {
                 return null; // Return null to trigger 404 or "content removed" message
             }
             $this->preparePostForDisplay($post);
@@ -202,7 +202,7 @@ final class PostService
             }
             // Force pending status if sub requires approval
             if ($sub && $sub->require_approval) {
-                $data['status'] = 'pending';
+                $data['status'] = Post::STATUS_PENDING;
             }
         }
 
@@ -233,11 +233,14 @@ final class PostService
         $post = Post::create($data);
 
         // Auto-vote: author automatically upvotes their own post
-        $post->votes()->create([
-            'user_id' => $data['user_id'],
-            'value' => Vote::VALUE_POSITIVE,
-            'type' => Vote::TYPE_INTERESTING,
-        ]);
+        // Use firstOrCreate to handle race conditions and duplicate votes gracefully
+        $post->votes()->firstOrCreate(
+            ['user_id' => $data['user_id']],
+            [
+                'value' => Vote::VALUE_POSITIVE,
+                'type' => Vote::TYPE_INTERESTING,
+            ],
+        );
         $post->updateVotesCount();
 
         // Auto-subscribe user to sub if posting to a sub they're not subscribed to
@@ -393,7 +396,7 @@ final class PostService
             $shouldFederate = $postSettings?->should_federate ?? false;
 
             // If changing from published to draft/hidden and was federated, send Delete
-            if ($oldStatus === 'published' && in_array($data['status'], ['draft', 'hidden'], true) && $wasFederated) {
+            if ($oldStatus === Post::STATUS_PUBLISHED && in_array($data['status'], [Post::STATUS_DRAFT, Post::STATUS_HIDDEN], true) && $wasFederated) {
                 \App\Jobs\DeliverPostDelete::dispatch(
                     $post->id,
                     $post->user_id,
@@ -402,7 +405,7 @@ final class PostService
             }
 
             // If changing to published and should_federate is enabled, dispatch federation
-            if ($data['status'] === 'published' && $oldStatus !== 'published' && $shouldFederate) {
+            if ($data['status'] === Post::STATUS_PUBLISHED && $oldStatus !== Post::STATUS_PUBLISHED && $shouldFederate) {
                 $this->dispatchFederationIfEnabled($post);
             }
         }
@@ -463,7 +466,7 @@ final class PostService
         $this->dispatchUpdateIfFederated($post);
 
         // Dispatch federation job if enabled, post is published, and should_federate is true
-        if ($post->status === 'published') {
+        if ($post->status === Post::STATUS_PUBLISHED) {
             $this->dispatchFederationIfEnabled($post);
         }
 
@@ -485,7 +488,7 @@ final class PostService
             $shouldFederate = $postSettings?->should_federate ?? false;
 
             // If changing from published to draft/hidden and was federated, send Delete
-            if ($oldStatus === 'published' && in_array($status, ['draft', 'hidden'], true) && $wasFederated) {
+            if ($oldStatus === Post::STATUS_PUBLISHED && in_array($status, [Post::STATUS_DRAFT, Post::STATUS_HIDDEN], true) && $wasFederated) {
                 \App\Jobs\DeliverPostDelete::dispatch(
                     $post->id,
                     $post->user_id,
@@ -494,7 +497,7 @@ final class PostService
             }
 
             // If changing to published and should_federate is enabled, dispatch federation
-            if ($status === 'published' && $oldStatus !== 'published' && $shouldFederate) {
+            if ($status === Post::STATUS_PUBLISHED && $oldStatus !== Post::STATUS_PUBLISHED && $shouldFederate) {
                 $this->dispatchFederationIfEnabled($post);
             }
         }
@@ -743,7 +746,7 @@ final class PostService
                 // No filter needed
             } else {
                 // On all other listings, only show published posts
-                $query->where('status', 'published');
+                $query->where('status', Post::STATUS_PUBLISHED);
             }
         }
 
@@ -942,7 +945,7 @@ final class PostService
     protected function dispatchFederationIfEnabled(Post $post): void
     {
         // Only federate published posts
-        if ($post->status !== 'published') {
+        if ($post->status !== Post::STATUS_PUBLISHED) {
             return;
         }
 
@@ -966,7 +969,7 @@ final class PostService
     protected function dispatchUpdateIfFederated(Post $post): void
     {
         // Only send updates for published posts
-        if ($post->status !== 'published') {
+        if ($post->status !== Post::STATUS_PUBLISHED) {
             return;
         }
 

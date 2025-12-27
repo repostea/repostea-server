@@ -290,7 +290,7 @@ final class TwitterService
         }
 
         // Must be published
-        if ($post->status !== 'published') {
+        if ($post->status !== Post::STATUS_PUBLISHED) {
             return false;
         }
 
@@ -334,7 +334,7 @@ final class TwitterService
         }
 
         // Must be published
-        if ($post->status !== 'published') {
+        if ($post->status !== Post::STATUS_PUBLISHED) {
             return false;
         }
 

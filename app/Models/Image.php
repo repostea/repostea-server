@@ -111,28 +111,28 @@ final class Image extends Model
     }
 
     /**
-     * Get URL for the image.
-     *
-     * Size parameter kept for backward compatibility but all sizes
-     * serve the same image (IPX handles resizing on frontend).
+     * Get relative URL path (for storing in DB).
      */
-    public function getUrl(string $size = 'medium'): string
+    public function getRelativeUrl(): string
     {
-        // Size in URL kept for backward compatibility with existing references
-        return url("/api/v1/images/{$this->hash}/{$size}");
+        return "/api/v1/images/{$this->hash}";
     }
 
     /**
-     * Get all URLs as array.
-     *
-     * All sizes return the same image (IPX handles resizing on frontend).
+     * Get absolute URL (for API responses).
+     */
+    public function getUrl(): string
+    {
+        return url($this->getRelativeUrl());
+    }
+
+    /**
+     * Get image data as array for API responses.
      */
     public function getUrls(): array
     {
         return [
-            'small' => $this->getUrl('small'),
-            'medium' => $this->getUrl('medium'),
-            'large' => $this->getUrl('large'),
+            'url' => $this->getUrl(),
             'is_nsfw' => $this->is_nsfw,
         ];
     }
@@ -140,12 +140,11 @@ final class Image extends Model
     /**
      * Get binary data for the image.
      *
-     * New uploads only have large_blob (IPX handles resizing on frontend).
-     * For backward compatibility, falls back to available sizes for old images.
+     * Returns the stored blob (large_blob for new uploads, falls back to
+     * medium/small for legacy images).
      */
-    public function getBlob(string $size = 'medium'): ?string
+    public function getBlob(): ?string
     {
-        // Priority: large (new single-size uploads) -> requested size -> any available
         return $this->large_blob
             ?? $this->medium_blob
             ?? $this->small_blob;

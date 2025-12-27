@@ -27,7 +27,7 @@ final class MediaMetadataController extends Controller
         private readonly UrlValidationService $urlValidator,
     ) {}
 
-    public function getTwitterMetadata(Request $request)
+    public function getTwitterMetadata(Request $request): mixed
     {
         $request->validate([
             'url' => 'required|url',

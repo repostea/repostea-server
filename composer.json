@@ -82,6 +82,13 @@
         "quality-fix": [
             "vendor/bin/pint"
         ],
+        "test": [
+            "vendor/bin/pest"
+        ],
+        "test:e2e": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash ../scripts/test-e2e.sh"
+        ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],

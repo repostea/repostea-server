@@ -4,49 +4,33 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Helpers\ErrorHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
-use App\Http\Resources\CommentWithPostResource;
-use App\Http\Resources\PostCollection;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Achievement;
-use App\Models\KarmaLevel;
+use App\Models\Comment;
+use App\Models\Post;
 use App\Models\User;
-use App\Services\KarmaService;
-use Exception;
 use Hash;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Str;
 
+/**
+ * API controller for authenticated user profile management.
+ * Public profile operations are in UserProfileController.
+ */
 final class UserController extends Controller
 {
-    protected $karmaService;
-
-    public function __construct(KarmaService $karmaService)
-    {
-        $this->karmaService = $karmaService;
-    }
-
-    public function current(Request $request)
-    {
-        $user = $request->user();
-        // Assuming these relationships exist in the User model
-        $user->load(['karmaLevel', 'streak']);
-
-        return response()->json([
-            'user' => new UserResource($user),
-            'karma_multiplier' => $user->karma_multiplier,
-        ]);
-    }
-
-    public function profile(Request $request)
+    /**
+     * Get current user's profile with achievements.
+     */
+    public function profile(Request $request): JsonResponse
     {
         $user = $request->user();
 
+        $user->loadCount(['posts', 'comments', 'votes']);
         $user->load(['karmaLevel', 'streak']);
 
         $achievements = $this->getUserAchievements($user);
@@ -63,112 +47,10 @@ final class UserController extends Controller
         ]);
     }
 
-    public function getByUsername($username)
-    {
-        $user = User::where('username', $username)
-            ->withTrashed()
-            ->withCount([
-                'posts' => function ($query): void {
-                    $query->where('is_anonymous', false);
-                },
-                'comments' => function ($query): void {
-                    $query->where('is_anonymous', false);
-                },
-                'votes',
-            ])
-            ->first();
-
-        if (! $user) {
-            return response()->json([
-                'message' => __('messages.users.not_found'),
-            ], 404);
-        }
-
-        if ($user->deleted_at) {
-            return response()->json([
-                'message' => __('messages.users.account_deleted'),
-            ], 404);
-        }
-        $user->load(['currentLevel', 'streak', 'preferences']);
-
-        // Always respect privacy settings in public profile view (even for own profile)
-        // Users should see their public profile the same way others see it
-        $hideAchievements = $user->preferences && $user->preferences->hide_achievements;
-
-        $achievements = null;
-        if (! $hideAchievements) {
-            $achievementsList = $this->getUserAchievements($user);
-
-            $achievements = [
-                'items' => $achievementsList->groupBy('type'),
-                'unlocked_count' => $achievementsList->where('unlocked', true)->count(),
-                'total_count' => $achievementsList->count(),
-            ];
-        }
-
-        return response()->json([
-            'data' => new UserResource($user),
-            'achievements' => $achievements,
-        ]);
-    }
-
-    public function getUserPosts($username)
-    {
-        $user = User::where('username', $username)->withTrashed()->first();
-
-        if (! $user || $user->deleted_at) {
-            return response()->json([
-                'message' => __('messages.users.not_found_or_deleted'),
-            ], 404);
-        }
-        $posts = $user->posts()
-            ->where('is_anonymous', false)
-            ->where('status', 'published') // Only show published posts in public profile
-            ->with(['tags', 'user'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(request('per_page', 15));
-
-        return new PostCollection($posts);
-    }
-
-    public function getUserComments($username)
-    {
-        $user = User::where('username', $username)->withTrashed()->with('preferences')->first();
-
-        if (! $user || $user->deleted_at) {
-            return response()->json([
-                'message' => __('messages.users.not_found_or_deleted'),
-            ], 404);
-        }
-
-        // Always respect privacy settings in public profile view (even for own profile)
-        // Users should see their public profile the same way others see it
-        $hideComments = $user->preferences && $user->preferences->hide_comments;
-
-        if ($hideComments) {
-            return response()->json([
-                'message' => __('messages.comments.hidden_by_user'),
-            ], 403);
-        }
-
-        $comments = $user->comments()
-            ->where('is_anonymous', false)
-            ->with(['post'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(request('per_page', 15));
-
-        return [
-            'data' => CommentWithPostResource::collection($comments),
-            'meta' => [
-                'total' => $comments->total(),
-                'per_page' => $comments->perPage(),
-                'current_page' => $comments->currentPage(),
-                'last_page' => $comments->lastPage(),
-            ],
-        ];
-    }
-
-    public function updateProfile(UpdateProfileRequest $request)
+    /**
+     * Update current user's profile.
+     */
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
         $user = $request->user();
         $data = $request->validated();
@@ -185,7 +67,7 @@ final class UserController extends Controller
         }
 
         if (isset($data['avatar_url']) && ! empty($data['avatar_url'])) {
-            $user->avatarUrl = $data['avatar_url']; // Assuming 'avatarUrl' is the proper property name
+            $user->avatarUrl = $data['avatar_url'];
         }
 
         $fieldsToUpdate = [
@@ -207,6 +89,7 @@ final class UserController extends Controller
         }
 
         $user->save();
+        $user->loadCount(['posts', 'comments', 'votes']);
 
         return response()->json([
             'message' => __('messages.profile.updated'),
@@ -214,164 +97,10 @@ final class UserController extends Controller
         ]);
     }
 
-    public function show($id)
-    {
-        $user = User::withCount(['posts', 'comments'])->findOrFail($id);
-        $user->load(['karmaLevel']);
-
-        return response()->json([
-            'user' => new UserResource($user),
-            'posts_count' => $user->posts_count,
-            'comments_count' => $user->comments_count,
-            'member_since' => $user->created_at->format('M Y'),
-        ]);
-    }
-
-    public function updateSettings(Request $request)
-    {
-        $user = $request->user();
-
-        $validated = $request->validate([
-            'locale' => ['sometimes', 'string', Rule::in(['en', 'es', 'fr', 'de', 'pt'])],
-            'theme' => ['sometimes', 'string', Rule::in(['light', 'dark', 'system'])],
-            'email_notifications' => 'sometimes|boolean',
-            'content_preferences' => 'sometimes|array',
-        ]);
-
-        $user->userSettings = array_merge($user->userSettings ?? [], $validated); // Assuming the property is called userSettings
-        $user->save();
-
-        return response()->json([
-            'message' => __('messages.settings.updated'),
-            'settings' => $user->userSettings,
-        ]);
-    }
-
-    public function karma(Request $request)
-    {
-        $user = $request->user();
-        $user->load(['karmaLevel', 'streak']);
-
-        $userLevel = $user->karmaLevel; // Highest level achieved (never decreases)
-
-        // Check if user has enough karma for their displayed level
-        $hasKarmaForLevel = $userLevel ? $user->karma_points >= $userLevel->required_karma : true;
-
-        $nextLevel = null;
-        if ($userLevel !== null) {
-            $nextLevel = KarmaLevel::where('required_karma', '>', $userLevel->required_karma)
-                ->orderBy('required_karma', 'asc')
-                ->first();
-        }
-
-        $progressPercentage = 0;
-        if ($nextLevel !== null && $userLevel !== null && $hasKarmaForLevel) {
-            // Only show progress if user has enough karma for their current level
-            $currentLevelKarma = $userLevel->required_karma;
-            $nextLevelKarma = $nextLevel->required_karma;
-            $karmaNeeded = $nextLevelKarma - $currentLevelKarma;
-            $karmaProgress = $user->karma_points - $currentLevelKarma;
-            $progressPercentage = min(100, max(0, ($karmaProgress / $karmaNeeded) * 100));
-        }
-
-        $karmaHistory = $user->karmaHistory()
-            ->latest()
-            ->take(10)
-            ->get()
-            ->map(static fn ($item) => [
-                'amount' => $item->amount,
-                'source' => $item->source,
-                'source_id' => $item->source_id,
-                'date' => $item->created_at->format('Y-m-d H:i:s'),
-            ]);
-
-        return response()->json([
-            'karma_points' => $user->karma_points,
-            'current_level' => $userLevel,
-            'next_level' => $nextLevel,
-            'progress_percentage' => $progressPercentage,
-            'has_karma_for_level' => $hasKarmaForLevel,
-            'karma_multiplier' => $user->karma_multiplier,
-            'streak' => [
-                'current' => $user->streak ? $user->streak->current_streak : 0,
-                'longest' => $user->streak ? $user->streak->longest_streak : 0,
-                'last_activity' => $user->streak ? $user->streak->last_activity_date->format('Y-m-d') : null,
-            ],
-            'recent_karma' => $karmaHistory,
-        ]);
-    }
-
-    public function karmaLevels()
-    {
-        $levels = KarmaLevel::orderBy('required_karma')->get();
-
-        return response()->json([
-            'levels' => $levels,
-        ]);
-    }
-
-    public function leaderboard(Request $request)
-    {
-        $perPage = $request->input('per_page', 20);
-        $timeframe = $request->input('timeframe', 'all');
-
-        $query = User::with('karmaLevel')
-            ->orderBy('karma_points', 'desc');
-
-        if ($timeframe === 'week') {
-            $query->where('updated_at', '>=', now()->subDays(7));
-        } elseif ($timeframe === 'month') {
-            $query->where('updated_at', '>=', now()->subDays(30));
-        }
-
-        $users = $query->paginate($perPage);
-
-        return response()->json([
-            'users' => UserResource::collection($users),
-            'meta' => [
-                'total' => $users->total(),
-                'per_page' => $users->perPage(),
-                'current_page' => $users->currentPage(),
-                'last_page' => $users->lastPage(),
-            ],
-        ]);
-    }
-
-    public function updateStreak(Request $request)
-    {
-        $user = $request->user();
-
-        try {
-            $streak = $this->karmaService->recordActivity($user);
-
-            return response()->json([
-                'streak' => $streak,
-                'message' => __('messages.karma.streak_updated'),
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'message' => __('messages.karma.streak_update_failed'),
-                'error' => ErrorHelper::getSafeError($e),
-            ], 500);
-        }
-    }
-
-    public function achievements(Request $request)
-    {
-        $user = $request->user();
-
-        $achievements = $this->getUserAchievements($user, includeKarmaBonus: true);
-
-        $groupedAchievements = $achievements->groupBy('type');
-
-        return response()->json([
-            'achievements' => $groupedAchievements,
-            'unlocked_count' => $achievements->where('unlocked', true)->count(),
-            'total_count' => $achievements->count(),
-        ]);
-    }
-
-    public function moderationHistory(Request $request)
+    /**
+     * Get user's moderation history (bans, strikes, moderated content).
+     */
+    public function moderationHistory(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -413,7 +142,7 @@ final class UserController extends Controller
 
         // Get moderated posts
         $moderatedPosts = $user->posts()
-            ->where('status', 'hidden')
+            ->where('status', Post::STATUS_HIDDEN)
             ->with('moderatedBy')
             ->orderBy('moderated_at', 'desc')
             ->get()
@@ -431,7 +160,7 @@ final class UserController extends Controller
 
         // Get moderated comments
         $moderatedComments = $user->comments()
-            ->where('status', 'hidden')
+            ->where('status', Comment::STATUS_HIDDEN)
             ->with(['moderatedBy', 'post'])
             ->orderBy('moderated_at', 'desc')
             ->get()
@@ -465,7 +194,10 @@ final class UserController extends Controller
         ]);
     }
 
-    public function deleteAccount(Request $request)
+    /**
+     * Delete user's account (GDPR compliant).
+     */
+    public function deleteAccount(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -483,8 +215,8 @@ final class UserController extends Controller
             return ApiResponse::error(__('auth.admin_cannot_delete'), null, 403);
         }
 
-        // Get next deletion number (use DB query to bypass any model scopes)
-        $maxDeletionNumber = DB::table('users')->max('deletion_number');
+        // Get next deletion number (include soft-deleted users)
+        $maxDeletionNumber = User::withTrashed()->max('deletion_number');
         $deletionNumber = $maxDeletionNumber ? $maxDeletionNumber + 1 : 1;
 
         // Anonymize user data (GDPR compliant)
@@ -492,9 +224,9 @@ final class UserController extends Controller
             'is_deleted' => true,
             'deleted_at' => now(),
             'deletion_number' => $deletionNumber,
-            'username' => 'deleted_' . $user->id . '_' . time(), // Change username to allow reuse
+            'username' => 'deleted_' . $user->id . '_' . time(),
             'email' => 'deleted+' . $user->id . '@deleted.local',
-            'password' => Hash::make(Str::random(64)), // Random unusable password
+            'password' => Hash::make(Str::random(64)),
             'display_name' => null,
             'bio' => null,
             'avatar_url' => null,
@@ -512,29 +244,7 @@ final class UserController extends Controller
     }
 
     /**
-     * Search users by username.
-     */
-    public function searchUsers(Request $request)
-    {
-        $query = $request->get('q', '');
-
-        if (strlen($query) < 2) {
-            return response()->json(['data' => []]);
-        }
-
-        $users = User::where('username', 'like', "%{$query}%")
-            ->where('is_guest', false)
-            ->select('id', 'username', 'avatar')
-            ->limit(10)
-            ->get();
-
-        return response()->json(['data' => $users]);
-    }
-
-    /**
-     * Convert Font Awesome icon class to Iconify format
-     * e.g., "fas fa-star" -> "fa6-solid:star"
-     * e.g., "far fa-bookmark" -> "fa6-regular:bookmark".
+     * Convert Font Awesome icon class to Iconify format.
      */
     private function convertIconToIconify(?string $icon): ?string
     {
@@ -542,15 +252,11 @@ final class UserController extends Controller
             return null;
         }
 
-        // If already in iconify format, return as-is
         if (str_contains($icon, ':')) {
             return $icon;
         }
 
-        // Map of FA5 icon names to FA6 icon names (icons that were renamed)
-        // Comprehensive list of common FA5 to FA6 renames
         $iconNameMap = [
-            // Common renames
             'external-link-alt' => 'arrow-up-right-from-square',
             'times-circle' => 'circle-xmark',
             'times' => 'xmark',
@@ -586,8 +292,7 @@ final class UserController extends Controller
             'search' => 'magnifying-glass',
             'home' => 'house',
             'cog' => 'gear',
-            // Additional common renames
-            'link' => 'link',  // stays same but document it
+            'link' => 'link',
             'arrow-alt-circle-up' => 'circle-up',
             'arrow-alt-circle-down' => 'circle-down',
             'arrow-alt-circle-left' => 'circle-left',
@@ -612,8 +317,7 @@ final class UserController extends Controller
             'long-arrow-alt-up' => 'up-long',
         ];
 
-        // Determine the prefix type (fas, far, fab)
-        $prefix = 'fa6-solid'; // default
+        $prefix = 'fa6-solid';
         if (str_starts_with($icon, 'far ')) {
             $prefix = 'fa6-regular';
             $icon = substr($icon, 4);
@@ -624,11 +328,9 @@ final class UserController extends Controller
             $icon = substr($icon, 4);
         }
 
-        // Remove any remaining fa- prefix
         $icon = str_replace('fa-', '', $icon);
         $icon = trim($icon);
 
-        // Map old icon names to new ones
         if (isset($iconNameMap[$icon])) {
             $icon = $iconNameMap[$icon];
         }
@@ -637,16 +339,16 @@ final class UserController extends Controller
     }
 
     /**
-     * Get all achievements with user progress (optimized - no N+1).
+     * Get all achievements with user progress.
      */
-    private function getUserAchievements(User $user, bool $includeKarmaBonus = false): \Illuminate\Support\Collection
+    private function getUserAchievements(User $user): \Illuminate\Support\Collection
     {
         $userAchievementsMap = $user->achievements()->get()->keyBy('id');
 
-        return Achievement::get()->map(function ($achievement) use ($userAchievementsMap, $includeKarmaBonus) {
+        return Achievement::get()->map(function ($achievement) use ($userAchievementsMap) {
             $userAchievement = $userAchievementsMap->get($achievement->id);
 
-            $data = [
+            return [
                 'id' => $achievement->id,
                 'key' => $achievement->slug,
                 'name' => __($achievement->name),
@@ -658,12 +360,6 @@ final class UserController extends Controller
                 'unlocked' => $userAchievement?->pivot->unlocked_at !== null,
                 'unlocked_at' => $userAchievement?->pivot->unlocked_at,
             ];
-
-            if ($includeKarmaBonus) {
-                $data['karma_bonus'] = $achievement->karma_bonus;
-            }
-
-            return $data;
         });
     }
 }

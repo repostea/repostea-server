@@ -11,24 +11,21 @@ use App\Helpers\ErrorHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSubRequest;
 use App\Http\Resources\PostCollection;
+use App\Models\Post;
 use App\Models\Sub;
-use App\Models\User;
 use App\Services\ImageService;
-use App\Services\SubMembershipService;
-use App\Services\SubModerationService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use InvalidArgumentException;
 
+/**
+ * API controller for sub (community) CRUD operations.
+ * Membership is in SubMembershipController, moderation in SubModerationController.
+ */
 final class SubController extends Controller
 {
-    public function __construct(
-        private readonly SubMembershipService $membershipService,
-        private readonly SubModerationService $moderationService,
-    ) {}
-
     /**
      * Get all subs (communities).
      */
@@ -52,9 +49,20 @@ final class SubController extends Controller
 
         // Calculate thresholds for trending and popular (top 20%) - cached for 5 minutes
         [$membersThreshold, $postsThreshold] = Cache::remember('subs_thresholds', 300, function () {
-            $allSubs = Sub::all();
-            $membersThreshold = $allSubs->sortByDesc('members_count')->slice(0, max(1, (int) ($allSubs->count() * 0.2)))->last()?->members_count ?? 0;
-            $postsThreshold = $allSubs->sortByDesc('posts_count')->slice(0, max(1, (int) ($allSubs->count() * 0.2)))->last()?->posts_count ?? 0;
+            $totalCount = Sub::count();
+            if ($totalCount === 0) {
+                return [0, 0];
+            }
+
+            $offset = max(0, (int) ($totalCount * 0.2) - 1);
+
+            $membersThreshold = Sub::orderByDesc('members_count')
+                ->skip($offset)
+                ->value('members_count') ?? 0;
+
+            $postsThreshold = Sub::orderByDesc('posts_count')
+                ->skip($offset)
+                ->value('posts_count') ?? 0;
 
             return [$membersThreshold, $postsThreshold];
         });
@@ -162,9 +170,20 @@ final class SubController extends Controller
 
         // Calculate is_trending and is_popular based on top 20% - cached for 5 minutes
         [$membersThreshold, $postsThreshold] = Cache::remember('subs_thresholds', 300, function () {
-            $allSubs = Sub::all();
-            $membersThreshold = $allSubs->sortByDesc('members_count')->slice(0, max(1, (int) ($allSubs->count() * 0.2)))->last()?->members_count ?? 0;
-            $postsThreshold = $allSubs->sortByDesc('posts_count')->slice(0, max(1, (int) ($allSubs->count() * 0.2)))->last()?->posts_count ?? 0;
+            $totalCount = Sub::count();
+            if ($totalCount === 0) {
+                return [0, 0];
+            }
+
+            $offset = max(0, (int) ($totalCount * 0.2) - 1);
+
+            $membersThreshold = Sub::orderByDesc('members_count')
+                ->skip($offset)
+                ->value('members_count') ?? 0;
+
+            $postsThreshold = Sub::orderByDesc('posts_count')
+                ->skip($offset)
+                ->value('posts_count') ?? 0;
 
             return [$membersThreshold, $postsThreshold];
         });
@@ -241,7 +260,7 @@ final class SubController extends Controller
         if ($sub->is_private) {
             $isMember = $request->user() && $sub->subscribers()
                 ->where('user_id', $request->user()->id)
-                ->wherePivot('status', 'active')
+                ->wherePivot('status', Sub::MEMBERSHIP_ACTIVE)
                 ->exists();
             if (! $isMember) {
                 return response()->json([
@@ -257,7 +276,7 @@ final class SubController extends Controller
 
         // Get posts from this sub
         $query = $sub->posts()
-            ->where('status', 'published')
+            ->where('status', Post::STATUS_PUBLISHED)
             ->with(['user', 'sub', 'tags'])
             ->withCount('comments');
 
@@ -425,12 +444,12 @@ final class SubController extends Controller
             );
 
             // Update sub model with new icon URL
-            $sub->icon = $image->getUrl('medium');
+            $sub->icon = $image->getUrl();
             $sub->save();
 
             return response()->json([
                 'message' => __('subs.icon_uploaded'),
-                'icon_url' => $image->getUrl('medium'),
+                'icon_url' => $image->getUrl(),
                 'image' => [
                     'id' => $image->id,
                     'urls' => $image->getUrls(),
@@ -449,43 +468,6 @@ final class SubController extends Controller
     }
 
     /**
-     * Join a sub.
-     */
-    public function join(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-        $result = $this->membershipService->join(
-            $sub,
-            $request->user(),
-            $request->input('message'),
-        );
-
-        return response()->json([
-            'message' => $result['message'],
-            'sub_id' => $sub->id,
-            'is_member' => $result['is_member'],
-            'request_pending' => $result['request_pending'],
-            'member_count' => $result['member_count'],
-        ]);
-    }
-
-    /**
-     * Leave a sub.
-     */
-    public function leave(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-        $result = $this->membershipService->leave($sub, $request->user());
-
-        return response()->json([
-            'message' => $result['message'],
-            'sub_id' => $sub->id,
-            'is_member' => $result['is_member'],
-            'member_count' => $result['member_count'],
-        ]);
-    }
-
-    /**
      * Get rules for a sub.
      */
     public function rules(string $subId): JsonResponse
@@ -495,503 +477,6 @@ final class SubController extends Controller
         return response()->json([
             'data' => $sub->rules,
             'sub_id' => (int) $subId,
-        ]);
-    }
-
-    /**
-     * Create membership request for private sub.
-     */
-    public function createMembershipRequest(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        $result = $this->membershipService->join(
-            $sub,
-            $request->user(),
-            $request->input('message'),
-        );
-
-        if ($result['is_member']) {
-            return response()->json([
-                'message' => $result['message'],
-                'sub_id' => $sub->id,
-            ], 409);
-        }
-
-        if (! $result['request_pending']) {
-            return response()->json([
-                'message' => $result['message'],
-                'sub_id' => $sub->id,
-                'is_member' => true,
-                'member_count' => $result['member_count'],
-            ]);
-        }
-
-        return response()->json([
-            'message' => $result['message'],
-            'sub_id' => $sub->id,
-            'request_pending' => true,
-        ], 201);
-    }
-
-    /**
-     * Get pending posts for moderation (moderators only).
-     */
-    public function pendingPosts(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if user is moderator
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_view_pending'),
-            ], 403);
-        }
-
-        $posts = $sub->posts()
-            ->where('status', 'pending')
-            ->with(['user', 'tags'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-
-        return response()->json([
-            'data' => $posts->items(),
-            'meta' => [
-                'current_page' => $posts->currentPage(),
-                'last_page' => $posts->lastPage(),
-                'per_page' => $posts->perPage(),
-                'total' => $posts->total(),
-            ],
-        ]);
-    }
-
-    /**
-     * Approve a pending post (moderators only).
-     */
-    public function approvePost(Request $request, string $subId, string $postId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if user is moderator
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_approve'),
-            ], 403);
-        }
-
-        $post = $sub->posts()->where('id', $postId)->firstOrFail();
-        $post->update(['status' => 'published']);
-
-        return response()->json([
-            'message' => __('subs.post_approved'),
-            'data' => $post,
-        ]);
-    }
-
-    /**
-     * Reject a pending post (moderators only).
-     */
-    public function rejectPost(Request $request, string $subId, string $postId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if user is moderator
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_reject'),
-            ], 403);
-        }
-
-        $post = $sub->posts()->where('id', $postId)->firstOrFail();
-        $post->update(['status' => 'rejected']);
-
-        return response()->json([
-            'message' => __('subs.post_rejected'),
-            'data' => $post,
-        ]);
-    }
-
-    /**
-     * Get members of a sub.
-     */
-    public function members(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if sub is private and user is not an active member
-        if ($sub->is_private && ! $this->membershipService->isActiveMember($sub, $request->user())) {
-            return response()->json([
-                'error' => 'Private community',
-                'message' => __('subs.private_community'),
-            ], 403);
-        }
-
-        $members = $this->membershipService->getMembers($sub);
-
-        return response()->json([
-            'data' => $members->items(),
-            'meta' => [
-                'current_page' => $members->currentPage(),
-                'last_page' => $members->lastPage(),
-                'per_page' => $members->perPage(),
-                'total' => $members->total(),
-            ],
-        ]);
-    }
-
-    /**
-     * Remove a member from the sub (moderators only).
-     */
-    public function removeMember(Request $request, string $subId, string $userId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_remove_member'),
-            ], 403);
-        }
-
-        $result = $this->membershipService->removeMember($sub, (int) $userId);
-
-        if (! $result['success']) {
-            return response()->json([
-                'error' => 'Invalid operation',
-                'message' => $result['message'],
-            ], 400);
-        }
-
-        return response()->json([
-            'message' => $result['message'],
-            'member_count' => $result['member_count'],
-        ]);
-    }
-
-    /**
-     * Get pending membership requests (moderators only).
-     */
-    public function membershipRequests(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_moderator'),
-            ], 403);
-        }
-
-        $requests = $this->membershipService->getPendingRequests($sub, 20);
-
-        return response()->json([
-            'data' => $requests->items(),
-            'meta' => [
-                'current_page' => $requests->currentPage(),
-                'last_page' => $requests->lastPage(),
-                'per_page' => $requests->perPage(),
-                'total' => $requests->total(),
-            ],
-        ]);
-    }
-
-    /**
-     * Approve a membership request (moderators only).
-     */
-    public function approveMembershipRequest(Request $request, string $subId, string $userId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_moderator'),
-            ], 403);
-        }
-
-        $result = $this->membershipService->approveMembershipRequest($sub, (int) $userId);
-
-        if (! $result['success']) {
-            return response()->json([
-                'error' => 'Not found',
-                'message' => $result['message'],
-            ], 404);
-        }
-
-        return response()->json([
-            'message' => $result['message'],
-            'member_count' => $result['member_count'],
-        ]);
-    }
-
-    /**
-     * Reject a membership request (moderators only).
-     */
-    public function rejectMembershipRequest(Request $request, string $subId, string $userId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_moderator'),
-            ], 403);
-        }
-
-        $result = $this->membershipService->rejectMembershipRequest($sub, (int) $userId);
-
-        if (! $result['success']) {
-            return response()->json([
-                'error' => 'Not found',
-                'message' => $result['message'],
-            ], 404);
-        }
-
-        return response()->json([
-            'message' => $result['message'],
-        ]);
-    }
-
-    /**
-     * Get moderators of a sub.
-     */
-    public function moderators(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if user is moderator (only moderators can see the full list)
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_moderator'),
-            ], 403);
-        }
-
-        $moderators = $this->moderationService->getModerators($sub);
-
-        return response()->json([
-            'data' => $moderators,
-        ]);
-    }
-
-    /**
-     * Add a moderator to the sub (owner only).
-     */
-    public function addModerator(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if user is the owner
-        if (! $request->user() || ! $sub->isOwner($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_owner'),
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
-        ]);
-
-        $result = $this->moderationService->addModerator($sub, $validated['user_id'], $request->user());
-
-        if (! $result['success']) {
-            return response()->json([
-                'error' => 'Invalid operation',
-                'message' => $result['message'],
-            ], 400);
-        }
-
-        return response()->json([
-            'message' => $result['message'],
-            'data' => $result['user'],
-        ]);
-    }
-
-    /**
-     * Remove a moderator from the sub (owner only).
-     */
-    public function removeModerator(Request $request, string $subId, string $userId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if user is the owner
-        if (! $request->user() || ! $sub->isOwner($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_owner'),
-            ], 403);
-        }
-
-        $result = $this->moderationService->removeModerator($sub, (int) $userId);
-
-        if (! $result['success']) {
-            return response()->json([
-                'error' => 'Invalid operation',
-                'message' => $result['message'],
-            ], 400);
-        }
-
-        return response()->json([
-            'message' => $result['message'],
-        ]);
-    }
-
-    /**
-     * Hide a published post (moderators only).
-     */
-    public function hidePost(Request $request, string $subId, string $postId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if user is moderator
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_moderator'),
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'reason' => 'nullable|string|max:500',
-        ]);
-
-        $post = $sub->posts()->where('id', $postId)->firstOrFail();
-
-        // Store previous status and hide
-        $post->update([
-            'previous_status' => $post->status,
-            'status' => 'hidden',
-            'moderated_by' => $request->user()->id,
-            'moderation_reason' => $validated['reason'] ?? null,
-            'moderated_at' => now(),
-        ]);
-
-        return response()->json([
-            'message' => __('subs.post_hidden'),
-            'data' => $post,
-        ]);
-    }
-
-    /**
-     * Unhide a hidden post (moderators only).
-     */
-    public function unhidePost(Request $request, string $subId, string $postId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if user is moderator
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_moderator'),
-            ], 403);
-        }
-
-        $post = $sub->posts()->where('id', $postId)->firstOrFail();
-
-        // Restore to previous status or published
-        $previousStatus = $post->previous_status ?? 'published';
-        $post->update([
-            'status' => $previousStatus,
-            'previous_status' => null,
-            'moderated_by' => null,
-            'moderation_reason' => null,
-            'moderated_at' => null,
-        ]);
-
-        return response()->json([
-            'message' => __('subs.post_unhidden'),
-            'data' => $post,
-        ]);
-    }
-
-    /**
-     * Get hidden posts for a sub (moderators only).
-     */
-    public function hiddenPosts(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        // Check if user is moderator
-        if (! $request->user() || ! $sub->isModerator($request->user())) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('subs.unauthorized_moderator'),
-            ], 403);
-        }
-
-        $posts = $sub->posts()
-            ->where('status', 'hidden')
-            ->with(['user', 'moderatedBy'])
-            ->orderBy('moderated_at', 'desc')
-            ->paginate(20);
-
-        return response()->json([
-            'data' => $posts->items(),
-            'meta' => [
-                'current_page' => $posts->currentPage(),
-                'last_page' => $posts->lastPage(),
-                'per_page' => $posts->perPage(),
-                'total' => $posts->total(),
-            ],
-        ]);
-    }
-
-    /**
-     * Claim ownership of an orphaned sub.
-     * Priority: moderators first, then any member.
-     */
-    public function claimOwnership(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-        $user = $request->user();
-
-        if (! $user) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => __('auth.unauthenticated'),
-            ], 401);
-        }
-
-        $result = $this->moderationService->claimOwnership($sub, $user);
-
-        if (! $result['success']) {
-            // Determine error type and status code based on failure reason
-            if (str_contains($result['message'], 'not_orphaned')) {
-                return response()->json([
-                    'error' => 'Not orphaned',
-                    'message' => $result['message'],
-                ], 400);
-            }
-
-            return response()->json([
-                'error' => 'Cannot claim',
-                'message' => $result['message'],
-            ], 403);
-        }
-
-        return response()->json([
-            'message' => $result['message'],
-            'data' => $result['sub'],
-        ]);
-    }
-
-    /**
-     * Check if a sub can be claimed and by whom.
-     */
-    public function claimStatus(Request $request, string $subId): JsonResponse
-    {
-        $sub = Sub::findOrFail($subId);
-
-        $status = $this->moderationService->getClaimStatus($sub, $request->user());
-
-        return response()->json([
-            ...$status,
-            'grace_period_total_days' => Sub::MODERATOR_CLAIM_PRIORITY_DAYS,
         ]);
     }
 }

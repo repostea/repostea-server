@@ -12,13 +12,13 @@ use function Pest\Laravel\postJson;
 
 beforeEach(function (): void {
     if (KarmaLevel::count() === 0) {
-        KarmaLevel::create(['id' => 1, 'name' => 'Novato', 'required_karma' => 0, 'badge' => '🌱']);
-        KarmaLevel::create(['id' => 2, 'name' => 'Aprendiz', 'required_karma' => 200, 'badge' => '🔍']);
-        KarmaLevel::create(['id' => 3, 'name' => 'Colaborador', 'required_karma' => 1000, 'badge' => '🌟']);
-        KarmaLevel::create(['id' => 4, 'name' => 'Experto', 'required_karma' => 4000, 'badge' => '🏆']);
+        KarmaLevel::create(['id' => 1, 'name' => 'Novice', 'required_karma' => 0, 'badge' => '🌱']);
+        KarmaLevel::create(['id' => 2, 'name' => 'Apprentice', 'required_karma' => 200, 'badge' => '🔍']);
+        KarmaLevel::create(['id' => 3, 'name' => 'Contributor', 'required_karma' => 1000, 'badge' => '🌟']);
+        KarmaLevel::create(['id' => 4, 'name' => 'Expert', 'required_karma' => 4000, 'badge' => '🏆']);
         KarmaLevel::create(['id' => 5, 'name' => 'Mentor', 'required_karma' => 16000, 'badge' => '👑']);
-        KarmaLevel::create(['id' => 6, 'name' => 'Sabio', 'required_karma' => 40000, 'badge' => '🔮']);
-        KarmaLevel::create(['id' => 7, 'name' => 'Leyenda', 'required_karma' => 100000, 'badge' => '⭐']);
+        KarmaLevel::create(['id' => 6, 'name' => 'Sage', 'required_karma' => 40000, 'badge' => '🔮']);
+        KarmaLevel::create(['id' => 7, 'name' => 'Legend', 'required_karma' => 100000, 'badge' => '⭐']);
     }
 });
 
@@ -27,7 +27,7 @@ test('user with account less than 30 days CAN create subcommunity if adequate le
     // Users only need the appropriate karma level to create subs
     $user = User::factory()->create([
         'karma_points' => 1000,
-        'highest_level_id' => 3, // Colaborador
+        'highest_level_id' => 3, // Contributor
         'created_at' => now()->subDays(15), // Only 15 days
     ]);
 
@@ -36,16 +36,16 @@ test('user with account less than 30 days CAN create subcommunity if adequate le
     $response = postJson('/api/v1/subs', [
         'name' => 'test-sub',
         'display_name' => 'Test Sub',
-        'description' => 'Una subcomunidad de prueba',
+        'description' => 'A test subcommunity',
     ]);
 
     $response->assertStatus(201);
 });
 
-test('user without collaborator level cannot create subcommunity', function (): void {
+test('user without contributor level cannot create subcommunity', function (): void {
     $user = User::factory()->create([
         'karma_points' => 500,
-        'highest_level_id' => 2, // Aprendiz
+        'highest_level_id' => 2, // Apprentice
     ]);
 
     DB::table('users')
@@ -59,18 +59,18 @@ test('user without collaborator level cannot create subcommunity', function (): 
     $response = postJson('/api/v1/subs', [
         'name' => 'test-sub',
         'display_name' => 'Test Sub',
-        'description' => 'Una subcomunidad de prueba',
+        'description' => 'A test subcommunity',
     ]);
 
     $response->assertStatus(422);
     $response->assertJsonValidationErrors(['karma']);
 });
 
-test('collaborator user can create 1 subcommunity', function (): void {
+test('contributor user can create 1 subcommunity', function (): void {
     $user = User::factory()->create([
         'karma_points' => 1000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 3, // Colaborador
+        'highest_level_id' => 3, // Contributor
     ]);
 
     Sanctum::actingAs($user);
@@ -78,7 +78,7 @@ test('collaborator user can create 1 subcommunity', function (): void {
     $response = postJson('/api/v1/subs', [
         'name' => 'test-sub',
         'display_name' => 'Test Sub',
-        'description' => 'Una subcomunidad de prueba',
+        'description' => 'A test subcommunity',
         'icon' => '💻',
         'color' => '#3B82F6',
     ]);
@@ -92,11 +92,11 @@ test('collaborator user can create 1 subcommunity', function (): void {
     expect($sub->subscribers()->count())->toBe(1);
 });
 
-test('collaborator user cannot create more than 1 subcommunity', function (): void {
+test('contributor user cannot create more than 1 subcommunity', function (): void {
     $user = User::factory()->create([
         'karma_points' => 1000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 3, // Colaborador
+        'highest_level_id' => 3, // Contributor
     ]);
 
     Sub::create([
@@ -112,7 +112,7 @@ test('collaborator user cannot create more than 1 subcommunity', function (): vo
     $response = postJson('/api/v1/subs', [
         'name' => 'second-sub',
         'display_name' => 'Second Sub',
-        'description' => 'Intento de crear segunda subcomunidad',
+        'description' => 'Attempt to create second subcommunity',
     ]);
 
     $response->assertStatus(422);
@@ -123,7 +123,7 @@ test('expert user can create subcommunities without limit', function (): void {
     $user = User::factory()->create([
         'karma_points' => 5000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 4, // Experto
+        'highest_level_id' => 4, // Expert
     ]);
 
     Sub::create([
@@ -140,7 +140,7 @@ test('expert user can create subcommunities without limit', function (): void {
     $response = postJson('/api/v1/subs', [
         'name' => 'second-sub',
         'display_name' => 'Second Sub',
-        'description' => 'Segunda subcomunidad del experto',
+        'description' => 'Second subcommunity from expert',
         'icon' => '🎨',
         'color' => '#EC4899',
     ]);
@@ -153,7 +153,7 @@ test('required fields validation', function (): void {
     $user = User::factory()->create([
         'karma_points' => 1000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 3, // Colaborador
+        'highest_level_id' => 3, // Contributor
     ]);
 
     Sanctum::actingAs($user);
@@ -168,7 +168,7 @@ test('unique name validation', function (): void {
     $user = User::factory()->create([
         'karma_points' => 5000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 4, // Experto
+        'highest_level_id' => 4, // Expert
     ]);
 
     Sub::create([
@@ -194,7 +194,7 @@ test('hexadecimal color format validation', function (): void {
     $user = User::factory()->create([
         'karma_points' => 1000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 3, // Colaborador
+        'highest_level_id' => 3, // Contributor
     ]);
 
     Sanctum::actingAs($user);
@@ -213,7 +213,7 @@ test('creator is automatically subscribed when creating subcommunity', function 
     $user = User::factory()->create([
         'karma_points' => 1000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 3, // Colaborador
+        'highest_level_id' => 3, // Contributor
     ]);
 
     Sanctum::actingAs($user);
@@ -233,7 +233,7 @@ test('expert user can create up to 3 subcommunities', function (): void {
     $user = User::factory()->create([
         'karma_points' => 5000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 4, // Experto
+        'highest_level_id' => 4, // Expert
     ]);
 
     Sub::create(['name' => 'sub1', 'display_name' => 'Sub 1', 'created_by' => $user->id, 'icon' => '💻', 'color' => '#3B82F6']);
@@ -257,7 +257,7 @@ test('expert user cannot create more than 3 subcommunities', function (): void {
     $user = User::factory()->create([
         'karma_points' => 5000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 4, // Experto
+        'highest_level_id' => 4, // Expert
     ]);
 
     Sub::create(['name' => 'sub1', 'display_name' => 'Sub 1', 'created_by' => $user->id, 'icon' => '💻', 'color' => '#3B82F6']);
@@ -311,7 +311,7 @@ test('sage user can create unlimited subcommunities', function (): void {
     $user = User::factory()->create([
         'karma_points' => 45000,
         'created_at' => now()->subDays(40),
-        'highest_level_id' => 6, // Sabio
+        'highest_level_id' => 6, // Sage
     ]);
 
     for ($i = 1; $i <= 10; $i++) {

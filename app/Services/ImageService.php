@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Image;
-use App\Models\ImageSetting;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -33,6 +32,16 @@ final class ImageService
     ];
 
     public const MAX_FILE_SIZE = 16 * 1024 * 1024;
+
+    /**
+     * Maximum widths for each image type (IPX handles resizing on frontend).
+     */
+    public const IMAGE_MAX_WIDTHS = [
+        'avatar' => 500,
+        'thumbnail' => 1200,
+        'inline' => 1920,
+        'sub_icon' => 500,
+    ];
 
     public function __construct(
         private readonly UrlValidationService $urlValidator,
@@ -63,12 +72,12 @@ final class ImageService
     ): Image {
         $this->validateImage($file);
 
-        // Get sizes for this image type from database settings
-        $sizes = ImageSetting::getSizesForType($type);
-
-        if (empty($sizes)) {
-            throw new InvalidArgumentException("No size settings found for image type: {$type}");
+        if (! isset(self::IMAGE_MAX_WIDTHS[$type])) {
+            throw new InvalidArgumentException('Invalid image type: ' . $type);
         }
+
+        // Get max width for this image type
+        $maxWidth = self::IMAGE_MAX_WIDTHS[$type];
 
         // Read original image to get metadata
         $image = $this->manager->read($file->getRealPath());
@@ -83,8 +92,7 @@ final class ImageService
         // Determine if we should use lossless compression
         $useLossless = $this->shouldUseLosslessCompression($originalMimeType);
 
-        // Only generate the largest size - IPX on frontend handles resizing
-        $maxWidth = max($sizes);
+        // Only generate one size - IPX on frontend handles resizing
         $freshImage = $this->manager->read($originalPath);
         $blobData = $this->getResizedImageBlob($freshImage, $maxWidth, $useLossless);
 
@@ -345,11 +353,8 @@ final class ImageService
             throw new InvalidArgumentException('Image too large. Max size: 16MB');
         }
 
-        // Get sizes for this image type
-        $sizes = ImageSetting::getSizesForType($type);
-        if (empty($sizes)) {
-            throw new InvalidArgumentException("No size settings found for image type: {$type}");
-        }
+        // Get max width for this image type
+        $maxWidth = self::IMAGE_MAX_WIDTHS[$type] ?? self::IMAGE_MAX_WIDTHS['inline'];
 
         // Process image
         $image = $this->manager->read($imageData);
@@ -358,8 +363,6 @@ final class ImageService
 
         $hash = hash('sha256', $userId . time() . Str::random(16));
         $useLossless = $this->shouldUseLosslessCompression($mimeType);
-
-        $maxWidth = max($sizes);
         $blobData = $this->getResizedImageBlob($image, $maxWidth, $useLossless);
 
         return Image::create([

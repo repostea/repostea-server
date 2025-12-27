@@ -1,4 +1,5 @@
 /.phpunit.cache
+/coverage-report
 /node_modules
 /public/build
 /public/hot
@@ -34,3 +35,7 @@ C\:\\*
 # Plugins are managed as a submodule (repostea-plugins repo)
 .env.dev.backup
 .env.e2e
+
+# Deploy scripts (kept in parent repo, not published)
+deploy-*.sh
+apache-reverb.conf

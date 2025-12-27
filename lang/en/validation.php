@@ -6,6 +6,7 @@ return [
     // Custom app validation rules
     'title_must_contain_letters' => 'The title must contain at least one letter.',
     'title_must_have_alphanumeric' => 'The title must contain valid alphanumeric characters.',
+    'safe_external_url' => 'The URL must point to a public external server.',
 
     'sub' => [
         'name_required' => 'The subcommunity name is required.',

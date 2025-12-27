@@ -1081,10 +1081,6 @@
                             </a>
                         </div>
                     </div>
-                    <a href="{{ route('admin.image-settings') }}" class="menu-item flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white {{ request()->routeIs('admin.image-settings') ? 'active text-white' : '' }}">
-                        <i class="fas fa-images mr-3"></i>
-                        Image Settings
-                    </a>
                     <a href="{{ route('admin.database') }}" class="menu-item flex items-center px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white {{ request()->routeIs('admin.database') ? 'active text-white' : '' }}">
                         <i class="fas fa-database mr-3"></i>
                         Database

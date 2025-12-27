@@ -167,6 +167,14 @@ final class Post extends Model
 
     use SoftDeletes;
 
+    public const STATUS_PUBLISHED = 'published';
+
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_HIDDEN = 'hidden';
+
     protected $fillable = [
         'title',
         'content',
@@ -239,7 +247,7 @@ final class Post extends Model
             }
 
             // Set published_at on first publish (only if creating as published)
-            if ($post->status === 'published' && empty($post->published_at)) {
+            if ($post->status === self::STATUS_PUBLISHED && empty($post->published_at)) {
                 $post->published_at = now();
             }
         });
@@ -250,7 +258,7 @@ final class Post extends Model
             }
 
             // Set published_at on first publish (when status changes to published)
-            if ($post->isDirty('status') && $post->status === 'published' && empty($post->published_at)) {
+            if ($post->isDirty('status') && $post->status === self::STATUS_PUBLISHED && empty($post->published_at)) {
                 $post->published_at = now();
             }
         });
@@ -475,6 +483,15 @@ final class Post extends Model
         return $this->belongsTo(Image::class, 'thumbnail_image_id');
     }
 
+    public function getThumbnailUrlAttribute(): ?string
+    {
+        if ($this->thumbnail_image_id && $this->relationLoaded('thumbnailImage') && $this->thumbnailImage) {
+            return $this->thumbnailImage->getUrl();
+        }
+
+        return $this->attributes['thumbnail_url'] ?? null;
+    }
+
     /**
      * Get relationships where this post is the source.
      */
@@ -498,7 +515,7 @@ final class Post extends Model
     {
         return PostRelationship::where('source_post_id', $this->id)
             ->orWhere('target_post_id', $this->id)
-            ->with(['sourcePost', 'targetPost', 'creator'])
+            ->with(['sourcePost.user', 'targetPost.user', 'creator'])
             ->get();
     }
 

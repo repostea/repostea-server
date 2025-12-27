@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\Image;
 use App\Models\Post;
 use App\Models\User;
 use App\Services\ImageService;
@@ -167,7 +168,22 @@ final class MigrateImagesToDatabase extends Command
                     continue;
                 }
 
-                // Download image from URL
+                // Link internal URLs to existing images
+                if ($this->isInternalImageUrl($post->thumbnail_url)) {
+                    $image = $this->findImageByUrl($post->thumbnail_url);
+                    if ($image) {
+                        $post->thumbnail_image_id = $image->id;
+                        $post->save();
+                        $this->successCount++;
+                    } else {
+                        $this->errorCount++;
+                    }
+                    $progressBar->advance();
+
+                    continue;
+                }
+
+                // Download image from external URL
                 $tempFile = $this->downloadImage($post->thumbnail_url);
                 if (! $tempFile) {
                     $this->errorCount++;
@@ -245,5 +261,26 @@ final class MigrateImagesToDatabase extends Command
         } catch (Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Check if URL is an internal image URL (already in our system).
+     */
+    protected function isInternalImageUrl(string $url): bool
+    {
+        // Match /api/v1/images/HASH or /api/v1/images/HASH/size
+        return (bool) preg_match('#^/api/v1/images/[a-f0-9]{64}(?:/\w+)?$#', $url);
+    }
+
+    /**
+     * Find existing image by internal URL.
+     */
+    protected function findImageByUrl(string $url): ?Image
+    {
+        if (preg_match('#/api/v1/images/([a-f0-9]{64})#', $url, $matches)) {
+            return Image::where('hash', $matches[1])->first();
+        }
+
+        return null;
     }
 }

@@ -83,6 +83,14 @@ final class LegalReport extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_UNDER_REVIEW = 'under_review';
+
+    public const STATUS_RESOLVED = 'resolved';
+
+    public const STATUS_REJECTED = 'rejected';
+
     protected $fillable = [
         'reference_number',
         'type',
@@ -158,7 +166,7 @@ final class LegalReport extends Model
      */
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', self::STATUS_PENDING);
     }
 
     /**
@@ -166,7 +174,7 @@ final class LegalReport extends Model
      */
     public function scopeResolved($query)
     {
-        return $query->where('status', 'resolved');
+        return $query->where('status', self::STATUS_RESOLVED);
     }
 
     /**
@@ -175,7 +183,7 @@ final class LegalReport extends Model
     public function markAsReviewing(?int $reviewerId = null): void
     {
         $this->update([
-            'status' => 'under_review',
+            'status' => self::STATUS_UNDER_REVIEW,
             'reviewed_by' => $reviewerId,
             'reviewed_at' => now(),
         ]);
@@ -187,7 +195,7 @@ final class LegalReport extends Model
     public function markAsResolved(?string $adminNotes = null, ?int $reviewerId = null): void
     {
         $this->update([
-            'status' => 'resolved',
+            'status' => self::STATUS_RESOLVED,
             'admin_notes' => $adminNotes,
             'reviewed_by' => $reviewerId ?? $this->reviewed_by,
             'reviewed_at' => now(),
@@ -200,7 +208,7 @@ final class LegalReport extends Model
     public function markAsRejected(?string $adminNotes = null, ?int $reviewerId = null): void
     {
         $this->update([
-            'status' => 'rejected',
+            'status' => self::STATUS_REJECTED,
             'admin_notes' => $adminNotes,
             'reviewed_by' => $reviewerId ?? $this->reviewed_by,
             'reviewed_at' => now(),

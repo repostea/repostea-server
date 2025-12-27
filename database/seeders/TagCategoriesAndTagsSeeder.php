@@ -33,7 +33,7 @@ final class TagCategoriesAndTagsSeeder extends Seeder
             ];
         }
 
-        DB::table('tag_categories')->insert($categoriesInsert);
+        DB::table('tag_categories')->insertOrIgnore($categoriesInsert);
 
         $tagsByCategory = [
             'science' => [
@@ -97,6 +97,6 @@ final class TagCategoriesAndTagsSeeder extends Seeder
             }
         }
 
-        DB::table('tags')->insert($tagsToInsert);
+        DB::table('tags')->insertOrIgnore($tagsToInsert);
     }
 }

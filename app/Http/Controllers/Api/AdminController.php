@@ -36,7 +36,7 @@ final class AdminController extends Controller
     /**
      * Create a database backup and return it directly.
      */
-    public function createBackup()
+    public function createBackup(): JsonResponse|\Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         try {
             $timestamp = now()->format('Y-m-d_H-i-s');
@@ -86,7 +86,7 @@ final class AdminController extends Controller
     /**
      * Create backup of a single database (main or media) and return it directly as ZIP.
      */
-    public function createSingleBackup(string $database)
+    public function createSingleBackup(string $database): JsonResponse|\Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         try {
             if (! in_array($database, ['main', 'media'])) {
@@ -246,22 +246,31 @@ final class AdminController extends Controller
             $username = config("database.connections.{$connection}.username");
             $password = config("database.connections.{$connection}.password");
 
-            $command = sprintf(
-                'mysqldump --host=%s --port=%s --user=%s --password=%s %s > %s',
-                escapeshellarg($host),
-                escapeshellarg($port),
-                escapeshellarg($username),
-                escapeshellarg($password),
-                escapeshellarg($database),
-                escapeshellarg($outputFile),
-            );
+            // Use temp config file to avoid password exposure in ps aux
+            $configFile = tempnam(sys_get_temp_dir(), 'mysql_');
+            file_put_contents($configFile, "[client]\npassword={$password}\n");
+            chmod($configFile, 0600);
 
-            $process = Process::fromShellCommandline($command);
-            $process->setTimeout(300); // 5 minutes timeout
-            $process->run();
+            try {
+                $command = sprintf(
+                    'mysqldump --defaults-extra-file=%s --host=%s --port=%s --user=%s %s > %s',
+                    escapeshellarg($configFile),
+                    escapeshellarg($host),
+                    escapeshellarg($port),
+                    escapeshellarg($username),
+                    escapeshellarg($database),
+                    escapeshellarg($outputFile),
+                );
 
-            if (! $process->isSuccessful()) {
-                throw new ProcessFailedException($process);
+                $process = Process::fromShellCommandline($command);
+                $process->setTimeout(300); // 5 minutes timeout
+                $process->run();
+
+                if (! $process->isSuccessful()) {
+                    throw new ProcessFailedException($process);
+                }
+            } finally {
+                unlink($configFile);
             }
         } elseif ($driver === 'sqlite') {
             $database = config("database.connections.{$connection}.database");

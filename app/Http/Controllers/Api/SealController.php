@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\ErrorHelper;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CheckUserMarksRequest;
+use App\Http\Requests\SealMarkTypeRequest;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Services\SealService;
@@ -46,7 +48,7 @@ final class SealController extends Controller
     /**
      * Apply seal mark to a post.
      */
-    public function markPost(Request $request, Post $post): JsonResponse
+    public function markPost(SealMarkTypeRequest $request, Post $post): JsonResponse
     {
         $user = $request->user();
 
@@ -54,12 +56,8 @@ final class SealController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $request->validate([
-            'type' => 'required|in:recommended,advise_against',
-        ]);
-
         try {
-            $result = $this->sealService->applySealMark($user, $post, $request->type);
+            $result = $this->sealService->applySealMark($user, $post, $request->validated()['type']);
 
             return response()->json([
                 'success' => true,
@@ -81,7 +79,7 @@ final class SealController extends Controller
     /**
      * Remove seal mark from a post.
      */
-    public function unmarkPost(Request $request, Post $post): JsonResponse
+    public function unmarkPost(SealMarkTypeRequest $request, Post $post): JsonResponse
     {
         $user = $request->user();
 
@@ -89,12 +87,8 @@ final class SealController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $request->validate([
-            'type' => 'required|in:recommended,advise_against',
-        ]);
-
         try {
-            $result = $this->sealService->removeSealMark($user, $post, $request->type);
+            $result = $this->sealService->removeSealMark($user, $post, $request->validated()['type']);
 
             return response()->json([
                 'success' => true,
@@ -116,7 +110,7 @@ final class SealController extends Controller
     /**
      * Apply seal mark to a comment.
      */
-    public function markComment(Request $request, Comment $comment): JsonResponse
+    public function markComment(SealMarkTypeRequest $request, Comment $comment): JsonResponse
     {
         $user = $request->user();
 
@@ -124,12 +118,8 @@ final class SealController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $request->validate([
-            'type' => 'required|in:recommended,advise_against',
-        ]);
-
         try {
-            $result = $this->sealService->applySealMark($user, $comment, $request->type);
+            $result = $this->sealService->applySealMark($user, $comment, $request->validated()['type']);
 
             return response()->json([
                 'success' => true,
@@ -151,7 +141,7 @@ final class SealController extends Controller
     /**
      * Remove seal mark from a comment.
      */
-    public function unmarkComment(Request $request, Comment $comment): JsonResponse
+    public function unmarkComment(SealMarkTypeRequest $request, Comment $comment): JsonResponse
     {
         $user = $request->user();
 
@@ -159,12 +149,8 @@ final class SealController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $request->validate([
-            'type' => 'required|in:recommended,advise_against',
-        ]);
-
         try {
-            $result = $this->sealService->removeSealMark($user, $comment, $request->type);
+            $result = $this->sealService->removeSealMark($user, $comment, $request->validated()['type']);
 
             return response()->json([
                 'success' => true,
@@ -206,7 +192,7 @@ final class SealController extends Controller
     /**
      * Check if user has marked content.
      */
-    public function checkUserMarks(Request $request): JsonResponse
+    public function checkUserMarks(CheckUserMarksRequest $request): JsonResponse
     {
         $user = $request->user();
 
@@ -214,14 +200,11 @@ final class SealController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $request->validate([
-            'content_type' => 'required|in:post,comment',
-            'content_id' => 'required|integer',
-        ]);
+        $validated = $request->validated();
 
-        $content = $request->content_type === 'post'
-            ? Post::find($request->content_id)
-            : Comment::find($request->content_id);
+        $content = $validated['content_type'] === 'post'
+            ? Post::find($validated['content_id'])
+            : Comment::find($validated['content_id']);
 
         if (! $content) {
             return response()->json(['error' => 'Content not found'], 404);

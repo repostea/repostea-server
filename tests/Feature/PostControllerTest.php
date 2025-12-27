@@ -427,6 +427,30 @@ test('voteStats returns vote statistics', function (): void {
     expect($response->json())->toBeArray();
 });
 
+test('post response includes voting_open true for recent post', function (): void {
+    $post = Post::factory()->create([
+        'status' => 'published',
+        'created_at' => now()->subDays(1),
+    ]);
+
+    $response = getJson("/api/v1/posts/{$post->id}");
+
+    $response->assertStatus(200)
+        ->assertJson(['data' => ['voting_open' => true]]);
+});
+
+test('post response includes voting_open false for old post', function (): void {
+    $post = Post::factory()->create([
+        'status' => 'published',
+        'created_at' => now()->subDays(30),
+    ]);
+
+    $response = getJson("/api/v1/posts/{$post->id}");
+
+    $response->assertStatus(200)
+        ->assertJson(['data' => ['voting_open' => false]]);
+});
+
 // updateStatus test removed - route not found (405)
 
 test('registerView increments view counter', function (): void {

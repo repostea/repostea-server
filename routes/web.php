@@ -7,6 +7,10 @@ use App\Http\Controllers\Admin\AbuseMonitoringController;
 use App\Http\Controllers\Admin\ActivityPubController as AdminActivityPubController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AdminFederationController;
+use App\Http\Controllers\Admin\AdminLegalReportController;
+use App\Http\Controllers\Admin\AdminPostController;
+use App\Http\Controllers\Admin\AdminReportController;
+use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\IpBlockController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -102,7 +106,7 @@ Route::prefix('admin')->name('admin.')->group(static function (): void {
         Route::get('/', [AdminController::class, 'index'])->name('dashboard');
 
         // User Management
-        Route::get('/users', [AdminController::class, 'users'])->name('users');
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users');
 
         // User Approval Management (must be before {user} route)
         Route::get('/users/pending', [UserApprovalController::class, 'index'])
@@ -113,60 +117,63 @@ Route::prefix('admin')->name('admin.')->group(static function (): void {
             ->name('users.approval.stats');
 
         // Deleted Users Management (must be before {user} route)
-        Route::get('/users/deleted', [AdminController::class, 'deletedUsers'])
+        Route::get('/users/deleted', [AdminUserController::class, 'deleted'])
             ->middleware('can:admin-only')
             ->name('users.deleted');
 
-        Route::get('/users/{user}', [AdminController::class, 'showUser'])->name('users.show');
-        Route::post('/users/{user}/ban', [AdminController::class, 'banUser'])->name('users.ban');
-        Route::post('/users/{user}/unban', [AdminController::class, 'unbanUser'])->name('users.unban');
-        Route::post('/users/{user}/strike', [AdminController::class, 'giveStrike'])->name('users.strike');
-        Route::delete('/strikes/{strike}', [AdminController::class, 'removeStrike'])->name('strikes.remove');
-        Route::put('/bans/{ban}', [AdminController::class, 'editBan'])->name('bans.edit');
-        Route::put('/strikes/{strike}', [AdminController::class, 'editStrike'])->name('strikes.edit');
-        Route::post('/users/{user}/invitation-limit', [AdminController::class, 'updateInvitationLimit'])->name('users.invitation-limit');
-        Route::post('/users/{user}/invitation-limit/reset', [AdminController::class, 'resetInvitationLimit'])->name('users.invitation-limit.reset');
-        Route::post('/users/{user}/assign-role', [AdminController::class, 'assignRole'])->middleware('can:admin-only')->name('users.assign-role');
-        Route::post('/users/{user}/remove-role', [AdminController::class, 'removeRole'])->middleware('can:admin-only')->name('users.remove-role');
-        Route::post('/users/{user}/toggle-permission', [AdminController::class, 'togglePermission'])->middleware('can:admin-only')->name('users.toggle-permission');
-        Route::post('/users/{user}/assign-achievement', [AdminController::class, 'assignAchievement'])->middleware('can:admin-only')->name('users.assign-achievement');
-        Route::delete('/users/{user}', [AdminController::class, 'destroyUser'])->middleware('can:admin-only')->name('users.destroy');
-        Route::delete('/users/{user}/achievements/{achievement}', [AdminController::class, 'removeAchievement'])->middleware('can:admin-only')->name('users.remove-achievement');
-        Route::post('/users/{id}/restore', [AdminController::class, 'restoreUser'])->middleware('can:admin-only')->name('users.restore');
-        Route::delete('/users/{id}/force-delete', [AdminController::class, 'forceDeleteUser'])->middleware('can:admin-only')->name('users.force-delete');
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
+        Route::post('/users/{user}/ban', [AdminUserController::class, 'ban'])->name('users.ban');
+        Route::post('/users/{user}/unban', [AdminUserController::class, 'unban'])->name('users.unban');
+        Route::post('/users/{user}/strike', [AdminUserController::class, 'giveStrike'])->name('users.strike');
+        Route::delete('/strikes/{strike}', [AdminUserController::class, 'removeStrike'])->name('strikes.remove');
+        Route::put('/bans/{ban}', [AdminUserController::class, 'editBan'])->name('bans.edit');
+        Route::put('/strikes/{strike}', [AdminUserController::class, 'editStrike'])->name('strikes.edit');
+        Route::post('/users/{user}/invitation-limit', [AdminUserController::class, 'updateInvitationLimit'])->name('users.invitation-limit');
+        Route::post('/users/{user}/invitation-limit/reset', [AdminUserController::class, 'resetInvitationLimit'])->name('users.invitation-limit.reset');
+        Route::post('/users/{user}/assign-role', [AdminUserController::class, 'assignRole'])->middleware('can:admin-only')->name('users.assign-role');
+        Route::post('/users/{user}/remove-role', [AdminUserController::class, 'removeRole'])->middleware('can:admin-only')->name('users.remove-role');
+        Route::post('/users/{user}/toggle-permission', [AdminUserController::class, 'togglePermission'])->middleware('can:admin-only')->name('users.toggle-permission');
+        Route::post('/users/{user}/assign-achievement', [AdminUserController::class, 'assignAchievement'])->middleware('can:admin-only')->name('users.assign-achievement');
+        Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->middleware('can:admin-only')->name('users.destroy');
+        Route::delete('/users/{user}/achievements/{achievement}', [AdminUserController::class, 'removeAchievement'])->middleware('can:admin-only')->name('users.remove-achievement');
+        Route::post('/users/{id}/restore', [AdminUserController::class, 'restore'])->middleware('can:admin-only')->name('users.restore');
+        Route::delete('/users/{id}/force-delete', [AdminUserController::class, 'forceDelete'])->middleware('can:admin-only')->name('users.force-delete');
+
+        // Karma History
+        Route::get('/karma-history', [AdminUserController::class, 'karmaHistory'])->name('karma-history');
 
         // Post Management
-        Route::get('/posts', [AdminController::class, 'posts'])->name('posts');
-        Route::get('/posts/{post}', [AdminController::class, 'viewPost'])->name('posts.view');
-        Route::patch('/posts/{post}/moderation', [AdminController::class, 'updateModeration'])->name('posts.updateModeration');
-        Route::post('/posts/{post}/hide', [AdminController::class, 'hidePost'])->name('posts.hide');
-        Route::post('/posts/{post}/show', [AdminController::class, 'showPost'])->name('posts.show');
-        Route::post('/posts/{post}/approve', [AdminController::class, 'approvePost'])->name('posts.approve');
-        Route::delete('/posts/{post}', [AdminController::class, 'deletePost'])->name('posts.delete');
+        Route::get('/posts', [AdminPostController::class, 'index'])->name('posts');
+        Route::get('/posts/{post}', [AdminPostController::class, 'show'])->name('posts.view');
+        Route::patch('/posts/{post}/moderation', [AdminPostController::class, 'updateModeration'])->name('posts.updateModeration');
+        Route::post('/posts/{post}/hide', [AdminPostController::class, 'hide'])->name('posts.hide');
+        Route::post('/posts/{post}/show', [AdminPostController::class, 'restore'])->name('posts.show');
+        Route::post('/posts/{post}/approve', [AdminPostController::class, 'approve'])->name('posts.approve');
+        Route::delete('/posts/{post}', [AdminPostController::class, 'destroy'])->name('posts.delete');
         Route::post('/posts/{post}/twitter', [AdminController::class, 'postToTwitter'])->name('posts.twitter');
         Route::post('/posts/{post}/twitter/repost', [AdminController::class, 'repostToTwitter'])->name('posts.twitter.repost');
         Route::post('/posts/{post}/federate', [AdminController::class, 'federatePost'])->name('posts.federate');
 
         // Comment Management
-        Route::get('/comments', [AdminController::class, 'comments'])->name('comments');
-        Route::post('/comments/{comment}/hide', [AdminController::class, 'hideComment'])->name('comments.hide');
-        Route::post('/comments/{comment}/show', [AdminController::class, 'showComment'])->name('comments.show');
-        Route::delete('/comments/{comment}', [AdminController::class, 'deleteComment'])->name('comments.delete');
+        Route::get('/comments', [AdminPostController::class, 'comments'])->name('comments');
+        Route::post('/comments/{comment}/hide', [AdminPostController::class, 'hideComment'])->name('comments.hide');
+        Route::post('/comments/{comment}/show', [AdminPostController::class, 'showComment'])->name('comments.show');
+        Route::delete('/comments/{comment}', [AdminPostController::class, 'destroyComment'])->name('comments.delete');
 
         // Reports
-        Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
-        Route::get('/reports/{report}', [AdminController::class, 'viewReport'])->name('reports.view');
-        Route::post('/reports/{report}/resolve', [AdminController::class, 'resolveReport'])->name('reports.resolve');
-        Route::post('/reports/{report}/dismiss', [AdminController::class, 'dismissReport'])->name('reports.dismiss');
-        Route::post('/reports/{report}/reopen', [AdminController::class, 'reopenReport'])->name('reports.reopen');
-        Route::post('/reports/{report}/notes', [AdminController::class, 'addReportNote'])->name('reports.add-note');
+        Route::get('/reports', [AdminReportController::class, 'index'])->name('reports');
+        Route::get('/reports/{report}', [AdminReportController::class, 'show'])->name('reports.view');
+        Route::post('/reports/{report}/resolve', [AdminReportController::class, 'resolve'])->name('reports.resolve');
+        Route::post('/reports/{report}/dismiss', [AdminReportController::class, 'dismiss'])->name('reports.dismiss');
+        Route::post('/reports/{report}/reopen', [AdminReportController::class, 'reopen'])->name('reports.reopen');
+        Route::post('/reports/{report}/notes', [AdminReportController::class, 'addNote'])->name('reports.add-note');
 
         // Legal Reports (DMCA, abuse, etc.)
-        Route::get('/legal-reports', [AdminController::class, 'legalReports'])->name('legal-reports');
-        Route::get('/legal-reports/{legalReport}', [AdminController::class, 'viewLegalReport'])->name('legal-reports.view');
-        Route::post('/legal-reports/{legalReport}/status', [AdminController::class, 'updateLegalReportStatus'])->name('legal-reports.update-status');
-        Route::post('/legal-reports/{legalReport}/notes', [AdminController::class, 'addLegalReportNote'])->name('legal-reports.add-note');
-        Route::post('/legal-reports/{legalReport}/notify', [AdminController::class, 'notifyLegalReportResolution'])->name('legal-reports.notify');
+        Route::get('/legal-reports', [AdminLegalReportController::class, 'index'])->name('legal-reports');
+        Route::get('/legal-reports/{legalReport}', [AdminLegalReportController::class, 'show'])->name('legal-reports.view');
+        Route::post('/legal-reports/{legalReport}/status', [AdminLegalReportController::class, 'updateStatus'])->name('legal-reports.update-status');
+        Route::post('/legal-reports/{legalReport}/notes', [AdminLegalReportController::class, 'addNote'])->name('legal-reports.add-note');
+        Route::post('/legal-reports/{legalReport}/notify', [AdminLegalReportController::class, 'notify'])->name('legal-reports.notify');
 
         // Moderation Logs
         Route::get('/logs', [AdminController::class, 'moderationLogs'])->name('logs');
@@ -198,10 +205,6 @@ Route::prefix('admin')->name('admin.')->group(static function (): void {
         // Karma & Achievements Configuration (admins and moderators)
         Route::get('/karma-configuration', [AdminWebController::class, 'karmaConfiguration'])
             ->name('karma-configuration');
-
-        // Karma History Audit Log (admins and moderators)
-        Route::get('/karma-history', [AdminController::class, 'karmaHistory'])
-            ->name('karma-history');
 
         // Abuse Monitoring
         Route::get('/abuse', [AbuseMonitoringController::class, 'index'])->name('abuse');
@@ -239,11 +242,6 @@ Route::prefix('admin')->name('admin.')->group(static function (): void {
         Route::put('/settings', [SettingsController::class, 'update'])
             ->middleware('can:admin-only')
             ->name('settings.update');
-
-        // Image Settings (admin only)
-        Route::get('/image-settings', [App\Http\Controllers\Api\AdminImageSettingsController::class, 'index'])
-            ->middleware('can:admin-only')
-            ->name('image-settings');
 
         // Image Management
         Route::get('/images', [App\Http\Controllers\Admin\AdminImageController::class, 'index'])
@@ -299,6 +297,9 @@ Route::prefix('admin')->name('admin.')->group(static function (): void {
 // Cypress E2E testing routes (only in local/testing)
 if (app()->environment(['local', 'testing'])) {
     Route::post('/__cypress__/token-login', [App\Http\Controllers\CypressAuthController::class, 'login']);
+    Route::post('/__cypress__/factory', [App\Http\Controllers\CypressAuthController::class, 'factory']);
+    Route::post('/__cypress__/artisan', [App\Http\Controllers\CypressAuthController::class, 'artisan']);
+    Route::post('/__cypress__/cleanup', [App\Http\Controllers\CypressAuthController::class, 'cleanup']);
 }
 
 // Include auth routes (email verification, password reset, etc.)

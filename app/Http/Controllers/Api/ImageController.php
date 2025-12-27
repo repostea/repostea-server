@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Image;
 use App\Models\Post;
 use App\Models\User;
+use App\Rules\SafeExternalUrl;
 use App\Services\ImageService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -44,10 +45,8 @@ final class ImageController extends Controller
             $user = Auth::user();
             $image = $this->imageService->uploadAvatar($request->file('avatar'), $user->id);
 
-            // Update user model with new avatar image reference
+            // Link avatar to images table (URL is resolved via User::getAvatarAttribute)
             $user->avatar_image_id = $image->id;
-            $user->avatar = $image->getUrl('medium'); // For backward compatibility
-            $user->avatar_url = $image->getUrl('small'); // For backward compatibility
             $user->save();
 
             return response()->json([
@@ -114,7 +113,7 @@ final class ImageController extends Controller
 
             // Update post model with new thumbnail image reference
             $post->thumbnail_image_id = $image->id;
-            $post->thumbnail_url = $image->getUrl('medium'); // For backward compatibility
+            $post->thumbnail_url = $image->getRelativeUrl();
             $post->save();
 
             return response()->json([
@@ -142,7 +141,7 @@ final class ImageController extends Controller
     public function uploadThumbnailFromUrl(Request $request, int $postId): JsonResponse
     {
         $request->validate([
-            'url' => 'required|url',
+            'url' => ['required', 'url', new SafeExternalUrl()],
         ]);
 
         $post = Post::findOrFail($postId);
@@ -156,7 +155,7 @@ final class ImageController extends Controller
             );
 
             $post->thumbnail_image_id = $image->id;
-            $post->thumbnail_url = $image->getUrl('medium');
+            $post->thumbnail_url = $image->getRelativeUrl();
             $post->save();
 
             return response()->json([

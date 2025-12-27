@@ -24,7 +24,7 @@ final class RssController extends Controller
 
         return Cache::tags(['posts', 'rss'])->remember($cacheKey, 300, function () use ($lang) {
             $query = Post::with('user', 'tags')
-                ->where('status', 'published')
+                ->where('status', Post::STATUS_PUBLISHED)
                 ->whereNotNull('frontpage_at')
                 ->orderBy('frontpage_at', 'desc');
 
@@ -55,7 +55,7 @@ final class RssController extends Controller
 
         return Cache::tags(['posts', 'rss'])->remember($cacheKey, 300, function () use ($lang) {
             $query = Post::with('user', 'tags')
-                ->where('status', 'published')
+                ->where('status', Post::STATUS_PUBLISHED)
                 ->whereNull('frontpage_at')
                 ->orderBy('created_at', 'desc');
 

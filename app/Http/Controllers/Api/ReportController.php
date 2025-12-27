@@ -9,6 +9,7 @@ use App\Models\Comment;
 use App\Models\Post;
 use App\Models\Report;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,7 @@ final class ReportController extends Controller
     /**
      * Submit a new report.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'reportable_type' => ['required', 'string', Rule::in(['post', 'comment', 'user'])],
@@ -99,7 +100,7 @@ final class ReportController extends Controller
     /**
      * Get user's reports.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $reports = Report::where('reported_by', Auth::id())
             ->with(['reportable'])
@@ -112,7 +113,7 @@ final class ReportController extends Controller
     /**
      * Get a specific report.
      */
-    public function show(Report $report)
+    public function show(Report $report): JsonResponse
     {
         // Only allow viewing own reports or moderators
         if ($report->reported_by !== Auth::id() && ! Auth::user()->isModerator()) {
@@ -129,7 +130,7 @@ final class ReportController extends Controller
     /**
      * Delete a report (only if it's the user's own report and not resolved yet).
      */
-    public function destroy(Report $report)
+    public function destroy(Report $report): JsonResponse
     {
         // Only allow deleting own reports
         if ($report->reported_by !== Auth::id()) {

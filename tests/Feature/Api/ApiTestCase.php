@@ -35,10 +35,10 @@ final class ApiTestCase extends BaseTestCase
     {
         parent::setUp();
 
-        // Limpiar cache para evitar interferencias
+        // Clear cache to avoid interference
         Cache::flush();
 
-        // Configurar niveles de karma
+        // Configure karma levels
         $this->setupKarmaLevels();
 
         // Create standard user for tests
@@ -63,7 +63,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Crear usuario para pruebas.
+     * Create a user for testing.
      *
      * @param  array  $attributes
      *
@@ -81,11 +81,11 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Configurar niveles de karma para pruebas.
+     * Configure karma levels for testing.
      */
     protected function setupKarmaLevels(): void
     {
-        // Solo crear niveles si no existen
+        // Only create levels if they don't exist
         if (KarmaLevel::count() === 0) {
             KarmaLevel::create([
                 'name' => 'Novice',
@@ -120,7 +120,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Realizar solicitud autenticada como usuario estándar.
+     * Make an authenticated request as a standard user.
      *
      * @param  string  $method
      * @param  string  $uri
@@ -135,7 +135,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Realizar solicitud autenticada como administrador.
+     * Make an authenticated request as an admin.
      *
      * @param  string  $method
      * @param  string  $uri
@@ -150,7 +150,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Realizar solicitud GET autenticada.
+     * Make an authenticated GET request.
      *
      * @param  string  $uri
      * @param  array  $data
@@ -163,7 +163,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Realizar solicitud POST autenticada.
+     * Make an authenticated POST request.
      *
      * @param  string  $uri
      * @param  array  $data
@@ -176,7 +176,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Realizar solicitud PUT autenticada.
+     * Make an authenticated PUT request.
      *
      * @param  string  $uri
      * @param  array  $data
@@ -189,7 +189,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Realizar solicitud DELETE autenticada.
+     * Make an authenticated DELETE request.
      *
      * @param  string  $uri
      * @param  array  $data
@@ -202,7 +202,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Verificar que se requiere autenticación para una ruta.
+     * Verify that authentication is required for a route.
      *
      * @param  string  $method
      * @param  string  $uri
@@ -215,7 +215,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Crear un post para pruebas con datos específicos.
+     * Create a post for testing with specific data.
      *
      * @param  array  $attributes
      *
@@ -236,7 +236,7 @@ final class ApiTestCase extends BaseTestCase
     }
 
     /**
-     * Crear un comentario para pruebas con datos específicos.
+     * Create a comment for testing with specific data.
      *
      * @param  array  $attributes
      *

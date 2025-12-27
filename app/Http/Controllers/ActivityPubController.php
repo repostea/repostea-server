@@ -244,7 +244,7 @@ final class ActivityPubController extends Controller
             return response('ActivityPub not enabled', 404);
         }
 
-        if ($post->status !== 'published' || $post->deleted_at !== null) {
+        if ($post->status !== Post::STATUS_PUBLISHED || $post->deleted_at !== null) {
             return response()->json(['error' => 'Not found'], 404);
         }
 

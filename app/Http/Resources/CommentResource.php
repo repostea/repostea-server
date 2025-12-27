@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
@@ -17,14 +18,14 @@ final class CommentResource extends JsonResource
      */
     public function toArray($request): array
     {
-        $status = $this->resource->status ?? 'published';
+        $status = $this->resource->status ?? Comment::STATUS_PUBLISHED;
 
         // Don't send actual content if comment is hidden or deleted
         // Frontend will show appropriate message based on status
         $content = $this->resource->content;
-        if ($status === 'hidden') {
+        if ($status === Comment::STATUS_HIDDEN) {
             $content = '[hidden by moderation]';
-        } elseif ($status === 'deleted_by_author') {
+        } elseif ($status === Comment::STATUS_DELETED_BY_AUTHOR) {
             $content = '[deleted]';
         }
 
@@ -58,7 +59,7 @@ final class CommentResource extends JsonResource
             'edited_at' => $this->resource->edited_at,
             'status' => $status,
             'moderated_by' => $this->when($request->user()?->isAdmin() || $request->user()?->isModerator(), $this->resource->moderated_by),
-            'moderation_reason' => $this->when($status === 'hidden', $this->resource->moderation_reason),
+            'moderation_reason' => $this->when($status === Comment::STATUS_HIDDEN, $this->resource->moderation_reason),
             'moderated_at' => $this->resource->moderated_at,
             'user' => $user,
             'is_anonymous' => (bool) $this->resource->is_anonymous,

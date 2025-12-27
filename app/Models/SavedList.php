@@ -6,6 +6,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 /**
@@ -88,17 +90,23 @@ final class SavedList extends Model
         });
     }
 
-    public function getRouteKeyName()
+    public function getRouteKeyName(): string
     {
         return $this->type === 'custom' ? 'uuid' : 'slug';
     }
 
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function posts()
+    /**
+     * @return BelongsToMany<Post, $this>
+     */
+    public function posts(): BelongsToMany
     {
         return $this->belongsToMany(Post::class, 'saved_list_posts')
             ->withPivot('notes')

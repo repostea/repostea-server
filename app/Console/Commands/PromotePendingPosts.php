@@ -64,7 +64,7 @@ final class PromotePendingPosts extends Command
         // Find pending posts that meet the criteria, ordered by votes
         // Tie-breakers: more comments first, then oldest published first
         $pendingPosts = Post::whereNull('frontpage_at')
-            ->where('status', 'published')
+            ->where('status', Post::STATUS_PUBLISHED)
             ->where('votes_count', '>=', $minVotes)
             ->where('published_at', '>=', now()->subHours($maxAgeHours))
             ->orderBy('votes_count', 'desc')

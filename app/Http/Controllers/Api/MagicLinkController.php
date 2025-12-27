@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Notifications\MagicLinkLogin;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -18,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 final class MagicLinkController extends Controller
 {
-    public function sendMagicLink(Request $request)
+    public function sendMagicLink(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'email' => ['required', 'email'],
@@ -54,7 +55,7 @@ final class MagicLinkController extends Controller
         ]);
     }
 
-    public function verifyMagicLink(Request $request)
+    public function verifyMagicLink(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'token' => ['required', 'string'],

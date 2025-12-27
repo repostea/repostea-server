@@ -100,7 +100,7 @@ final class ActivityPubPostSettings extends Model
     public static function canFederate(Post $post): bool
     {
         // Check post is published (not draft/hidden)
-        if ($post->status !== 'published') {
+        if ($post->status !== Post::STATUS_PUBLISHED) {
             return false;
         }
 

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Helpers\ErrorHelper;
 use App\Http\Controllers\Controller;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -14,7 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 final class ApiPasswordController extends Controller
 {
-    public function update(Request $request)
+    public function update(Request $request): JsonResponse
     {
         try {
             $validated = $request->validate([

@@ -62,9 +62,9 @@ final class AdminUserResource extends JsonResource
             'updated_at' => $this->resource->updated_at?->format('Y-m-d H:i:s'),
             'tags' => $this->whenLoaded('tags'),
             'badge' => $this->resource->getBadge(),
-            'posts_count' => $this->resource->posts_count ?? $this->resource->posts()->count(),
-            'comments_count' => $this->resource->comments_count ?? $this->resource->comments()->count(),
-            'votes_count' => $this->resource->votes_count ?? $this->resource->votes()->count(),
+            'posts_count' => $this->resource->posts_count ?? 0,
+            'comments_count' => $this->resource->comments_count ?? 0,
+            'votes_count' => $this->resource->votes_count ?? 0,
             'current_level' => $this->whenLoaded('currentLevel', function () {
                 $currentLevel = $this->resource->currentLevel;
 

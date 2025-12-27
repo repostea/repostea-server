@@ -80,6 +80,12 @@ final class Sub extends Model
 
     use SoftDeletes;
 
+    public const MEMBERSHIP_PENDING = 'pending';
+
+    public const MEMBERSHIP_ACTIVE = 'active';
+
+    public const MEMBERSHIP_BANNED = 'banned';
+
     protected $fillable = [
         'name',
         'display_name',
@@ -151,7 +157,7 @@ final class Sub extends Model
     public function activeSubscribers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'sub_subscriptions')
-            ->wherePivot('status', 'active')
+            ->wherePivot('status', self::MEMBERSHIP_ACTIVE)
             ->withTimestamps();
     }
 
@@ -208,7 +214,7 @@ final class Sub extends Model
         // Check if creator exists and is still a member
         $creatorIsMember = $this->subscribers()
             ->where('user_id', $this->created_by)
-            ->wherePivot('status', 'active')
+            ->wherePivot('status', self::MEMBERSHIP_ACTIVE)
             ->exists();
 
         return ! $creatorIsMember;
@@ -257,7 +263,7 @@ final class Sub extends Model
         // User must be a member
         $isMember = $this->subscribers()
             ->where('user_id', $user->id)
-            ->wherePivot('status', 'active')
+            ->wherePivot('status', self::MEMBERSHIP_ACTIVE)
             ->exists();
 
         if (! $isMember) {

@@ -63,9 +63,9 @@ final class UserResource extends JsonResource
             'created_at' => $this->resource->created_at->format('Y-m-d'),
             'tags' => $this->whenLoaded('tags'),
             'badge' => $this->resource->getBadge(),
-            'posts_count' => $this->resource->posts_count ?? $this->resource->posts()->count(),
-            'comments_count' => $this->resource->comments_count ?? $this->resource->comments()->count(),
-            'votes_count' => $this->resource->votes_count ?? $this->resource->votes()->count(),
+            'posts_count' => $this->resource->posts_count ?? 0,
+            'comments_count' => $this->resource->comments_count ?? 0,
+            'votes_count' => $this->resource->votes_count ?? 0,
             'current_level' => $this->whenLoaded('currentLevel', function () {
                 $currentLevel = $this->resource->currentLevel;
 

@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SavedListPostRequest;
+use App\Http\Requests\StoreSavedListRequest;
+use App\Http\Requests\TogglePostRequest;
+use App\Http\Requests\UpdateSavedListRequest;
 use App\Http\Resources\PostCollection;
 use App\Http\Resources\SavedListCollection;
 use App\Http\Resources\SavedListResource;
@@ -12,29 +16,23 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Post;
 use App\Models\SavedList;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\Rule;
 
 final class SavedListController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): SavedListCollection
     {
-        $lists = Auth::user()->savedLists()->with(['posts', 'user'])->get();
+        $lists = Auth::user()->savedLists()->withCount('posts')->with('user')->get();
 
         return new SavedListCollection($lists);
     }
 
-    public function store(Request $request)
+    public function store(StoreSavedListRequest $request): SavedListResource|JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'is_public' => 'boolean',
-            'type' => ['required', 'string', Rule::in(['favorite', 'read_later', 'custom'])],
-            'slug' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         if (in_array($validated['type'], ['favorite', 'read_later'], true)) {
             $existingList = Auth::user()->savedLists()
@@ -54,7 +52,7 @@ final class SavedListController extends Controller
         return new SavedListResource($list);
     }
 
-    public function show($identifier)
+    public function show($identifier): SavedListResource
     {
         $savedList = SavedList::where('uuid', $identifier)
             ->orWhere('slug', $identifier)
@@ -68,7 +66,7 @@ final class SavedListController extends Controller
         return new SavedListResource($savedList);
     }
 
-    public function update(Request $request, $identifier)
+    public function update(UpdateSavedListRequest $request, $identifier): SavedListResource|JsonResponse
     {
         $savedList = SavedList::where('uuid', $identifier)
             ->orWhere('slug', $identifier)
@@ -83,20 +81,12 @@ final class SavedListController extends Controller
             ], 422);
         }
 
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'description' => 'nullable|string',
-            'is_public' => 'sometimes|boolean',
-            'type' => ['sometimes', 'string', Rule::in(['favorite', 'read_later', 'custom'])],
-            'slug' => 'nullable|string|max:255',
-        ]);
-
-        $savedList->update($validated);
+        $savedList->update($request->validated());
 
         return new SavedListResource($savedList);
     }
 
-    public function destroy($identifier)
+    public function destroy($identifier): JsonResponse
     {
         $savedList = SavedList::where('uuid', $identifier)
             ->orWhere('slug', $identifier)
@@ -116,7 +106,7 @@ final class SavedListController extends Controller
         return ApiResponse::success(null, __('messages.savedlists.deleted'));
     }
 
-    public function addPost(Request $request, $identifier)
+    public function addPost(SavedListPostRequest $request, $identifier): JsonResponse
     {
         $savedList = SavedList::where('uuid', $identifier)
             ->orWhere('slug', $identifier)
@@ -125,10 +115,7 @@ final class SavedListController extends Controller
 
         Gate::authorize('update', $savedList);
 
-        $validated = $request->validate([
-            'post_id' => 'required|exists:posts,id',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         if ($savedList->posts()->where('post_id', $validated['post_id'])->exists()) {
             return response()->json([
@@ -145,7 +132,7 @@ final class SavedListController extends Controller
         ]);
     }
 
-    public function removePost(Request $request, $identifier)
+    public function removePost(TogglePostRequest $request, $identifier): JsonResponse
     {
         $savedList = SavedList::where('uuid', $identifier)
             ->orWhere('slug', $identifier)
@@ -154,18 +141,14 @@ final class SavedListController extends Controller
 
         Gate::authorize('update', $savedList);
 
-        $validated = $request->validate([
-            'post_id' => 'required|exists:posts,id',
-        ]);
-
-        $savedList->posts()->detach($validated['post_id']);
+        $savedList->posts()->detach($request->validated()['post_id']);
 
         return response()->json([
             'message' => __('messages.savedlists.post_removed'),
         ]);
     }
 
-    public function posts($identifier)
+    public function posts($identifier): PostCollection
     {
         $savedList = SavedList::where('uuid', $identifier)
             ->orWhere('slug', $identifier)
@@ -182,25 +165,23 @@ final class SavedListController extends Controller
             ->paginate(15);
 
         if ($userId) {
-            $posts->each(static function ($post): void {
-                $userVote = $post->votes->first();
+            foreach ($posts as $post) {
+                /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Vote> $votesRelation */
+                $votesRelation = $post->getRelation('votes');
+                $userVote = $votesRelation->first();
                 $post->user_vote = $userVote?->value;
                 $post->user_vote_type = $userVote?->type;
-            });
+            }
         }
 
         return new PostCollection($posts);
     }
 
-    public function toggleFavorite(Request $request)
+    public function toggleFavorite(TogglePostRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'post_id' => 'required|exists:posts,id',
-        ]);
-
         $user = Auth::user();
         $favoritesList = $user->favorites_list;
-        $postId = $validated['post_id'];
+        $postId = $request->validated()['post_id'];
 
         if ($user->hasFavorite($postId)) {
             $favoritesList->posts()->detach($postId);
@@ -218,15 +199,11 @@ final class SavedListController extends Controller
         ]);
     }
 
-    public function toggleReadLater(Request $request)
+    public function toggleReadLater(TogglePostRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'post_id' => 'required|exists:posts,id',
-        ]);
-
         $user = Auth::user();
         $readLaterList = $user->read_later_list;
-        $postId = $validated['post_id'];
+        $postId = $request->validated()['post_id'];
 
         if ($user->hasReadLater($postId)) {
             $readLaterList->posts()->detach($postId);
@@ -244,7 +221,7 @@ final class SavedListController extends Controller
         ]);
     }
 
-    public function checkSavedStatus(Post $post)
+    public function checkSavedStatus(Post $post): JsonResponse
     {
         $user = Auth::user();
 
@@ -260,7 +237,7 @@ final class SavedListController extends Controller
         ]);
     }
 
-    public function updatePostNotes(Request $request, $identifier)
+    public function updatePostNotes(SavedListPostRequest $request, $identifier): JsonResponse
     {
         $savedList = SavedList::where('uuid', $identifier)
             ->orWhere('slug', $identifier)
@@ -269,10 +246,7 @@ final class SavedListController extends Controller
 
         Gate::authorize('update', $savedList);
 
-        $validated = $request->validate([
-            'post_id' => 'required|exists:posts,id',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $pivotRecord = $savedList->posts()->where('post_id', $validated['post_id'])->first();
 
@@ -291,7 +265,7 @@ final class SavedListController extends Controller
         ]);
     }
 
-    public function clearList($identifier)
+    public function clearList($identifier): JsonResponse
     {
         $savedList = SavedList::where('uuid', $identifier)
             ->orWhere('slug', $identifier)
@@ -314,7 +288,7 @@ final class SavedListController extends Controller
     }
 
     // Method for username/slug format (read-only, for SEO-friendly URLs)
-    public function showByUsernameAndSlug(string $username, string $slug)
+    public function showByUsernameAndSlug(string $username, string $slug): SavedListResource
     {
         $user = User::where('username', $username)->firstOrFail();
 

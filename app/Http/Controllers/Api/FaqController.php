@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 
 final class FaqController extends Controller
 {
-    public function index()
+    public function index(): JsonResponse
     {
         $faqs = [
             [

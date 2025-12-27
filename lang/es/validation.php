@@ -166,6 +166,7 @@ return [
     // Custom app validation rules
     'title_must_contain_letters' => 'El título debe contener al menos una letra.',
     'title_must_have_alphanumeric' => 'El título debe contener caracteres alfanuméricos válidos.',
+    'safe_external_url' => 'La URL debe apuntar a un servidor público externo.',
 
     /*
     |--------------------------------------------------------------------------
