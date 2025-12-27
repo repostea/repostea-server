@@ -349,10 +349,10 @@ final class MultiActorActivityPubService
 
         try {
             $response = Http::withHeaders($headers)
-                ->timeout(config('activitypub.http.timeout', 10))
+                ->timeout((int) config('activitypub.http.timeout', 10))
                 ->retry(
-                    config('activitypub.http.retries', 3),
-                    config('activitypub.http.retry_delay', 5) * 1000,
+                    (int) config('activitypub.http.retries', 3),
+                    (int) config('activitypub.http.retry_delay', 5) * 1000,
                 )
                 ->withBody($body, 'application/activity+json')
                 ->post($inboxUrl);

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Events\SubPostCreated;
+use App\Jobs\DeliverPostDelete;
+use App\Models\ActivityPubPostSettings;
 use App\Models\Post;
 use Illuminate\Support\Facades\Cache;
 
@@ -33,6 +35,14 @@ final class PostObserver
         // If the post belongs to a sub, update counter
         if ($post->sub_id && $post->sub) {
             $this->updatePostsCount($post->sub);
+        }
+
+        // Send Delete to fediverso if post was federated
+        if (config('activitypub.enabled', false)) {
+            $settings = ActivityPubPostSettings::where('post_id', $post->id)->first();
+            if ($settings?->is_federated) {
+                DeliverPostDelete::dispatch($post->id, $post->user_id, $post->sub_id);
+            }
         }
 
         // Clear post listing caches
