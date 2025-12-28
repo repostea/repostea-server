@@ -246,32 +246,23 @@ final class AdminController extends Controller
             $username = config("database.connections.{$connection}.username");
             $password = config("database.connections.{$connection}.password");
 
-            // Use temp config file to avoid password exposure in ps aux
-            $configFile = tempnam(sys_get_temp_dir(), 'mysql_');
-            file_put_contents($configFile, "[client]\npassword={$password}\n");
-            chmod($configFile, 0600);
+            // Use MYSQL_PWD env var to avoid password exposure in ps aux
+            $process = new Process([
+                'mysqldump',
+                '--host=' . $host,
+                '--port=' . $port,
+                '--user=' . $username,
+                $database,
+            ]);
+            $process->setEnv(['MYSQL_PWD' => $password]);
+            $process->setTimeout(300); // 5 minutes timeout
+            $process->run();
 
-            try {
-                $command = sprintf(
-                    'mysqldump --defaults-extra-file=%s --host=%s --port=%s --user=%s %s > %s',
-                    escapeshellarg($configFile),
-                    escapeshellarg($host),
-                    escapeshellarg($port),
-                    escapeshellarg($username),
-                    escapeshellarg($database),
-                    escapeshellarg($outputFile),
-                );
-
-                $process = Process::fromShellCommandline($command);
-                $process->setTimeout(300); // 5 minutes timeout
-                $process->run();
-
-                if (! $process->isSuccessful()) {
-                    throw new ProcessFailedException($process);
-                }
-            } finally {
-                unlink($configFile);
+            if (! $process->isSuccessful()) {
+                throw new ProcessFailedException($process);
             }
+
+            file_put_contents($outputFile, $process->getOutput());
         } elseif ($driver === 'sqlite') {
             $database = config("database.connections.{$connection}.database");
             if (file_exists($database)) {

@@ -1,0 +1,157 @@
+# Repostea - Docker Compose for Local Testing
+# ⚠️  NOT RECOMMENDED FOR PRODUCTION - Use INSTALL.md instead
+#
+# Quick Start:
+#   1. Clone both repos (server and client in same parent directory)
+#   2. Run: docker compose up -d
+#   3. Wait ~2 minutes for first build
+#   4. Visit: http://localhost:3000
+#
+# Default admin login:
+#   Username: admin
+#   Password: changeme123
+
+services:
+  # ===================
+  # Database
+  # ===================
+  mysql:
+    image: mysql:8.0
+    container_name: repostea-mysql
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --skip-ssl
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: repostea
+      MYSQL_USER: repostea
+      MYSQL_PASSWORD: repostea123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # ports:
+    #   - "3306:3306"  # Not exposed to avoid conflicts with local MySQL
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================
+  # Cache
+  # ===================
+  redis:
+    image: redis:7-alpine
+    container_name: repostea-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    # ports:
+    #   - "6379:6379"  # Not exposed to avoid conflicts with local Redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================
+  # Backend API
+  # ===================
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: repostea-server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_NAME: Repostea
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+
+      FRONTEND_URL: http://localhost:3000
+      CLIENT_URL: http://localhost:3000
+
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: repostea
+      DB_USERNAME: repostea
+      DB_PASSWORD: repostea123
+
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ""
+      REDIS_PORT: 6379
+
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: changeme123
+    volumes:
+      - server_storage:/var/www/html/storage/app
+    ports:
+      - "8000:8000"
+
+  # ===================
+  # Queue Worker
+  # ===================
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: repostea-queue
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      APP_NAME: Repostea
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: repostea
+      DB_USERNAME: repostea
+      DB_PASSWORD: repostea123
+
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ""
+      REDIS_PORT: 6379
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90"]
+
+  # ===================
+  # Frontend
+  # ===================
+  client:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+    container_name: repostea-client
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      NODE_ENV: production
+      NUXT_PUBLIC_API_BASE: http://localhost:8000/api
+      NUXT_PUBLIC_SERVER_URL: http://localhost:8000
+      NUXT_PUBLIC_SITE_URL: http://localhost:3000
+      NUXT_PUBLIC_CLIENT_URL: http://localhost:3000
+      NUXT_PUBLIC_APP_NAME: Repostea
+    ports:
+      - "3000:3000"
+
+volumes:
+  mysql_data:
+  redis_data:
+  server_storage:

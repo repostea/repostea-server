@@ -99,7 +99,11 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
+            "@dev:stop-docker",
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74,#86efac,#f472b6\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan reverb:start\" \"npm run dev\" \"cd ../client && pnpm run dev\" --names='server,queue,reverb,vite,nuxt'"
+        ],
+        "dev:stop-docker": [
+            "@php -r \"if (shell_exec('docker ps -q --filter name=repostea-server 2>/dev/null')) { echo 'Stopping Docker containers using ports 8000/3000...'.PHP_EOL; shell_exec('docker compose down 2>/dev/null'); }\""
         ],
         "deploy": [
             "bash ../deploy.sh"

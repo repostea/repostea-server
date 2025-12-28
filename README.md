@@ -1,174 +1,239 @@
 # Repostea
 
-Repostea is a content aggregation platform built with Laravel for the backend API and Nuxt for the frontend.
+**Open-source content aggregation platform** - A modern alternative to Reddit/Hacker News that you can self-host.
 
-## Description
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-red.svg)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.2+-purple.svg)](https://php.net)
 
-Repostea allows users to share, vote, and comment on various types of content. The platform supports:
+## What is Repostea?
 
-- Publishing different content types (text, links, media)
-- Voting system for posts and comments
-- Comments and nested replies
-- Karma system and user levels
-- Tags for content categorization
+Repostea is a complete platform for building community-driven content aggregation sites. Think Reddit, Hacker News, or Menéame - but open source and self-hosted.
+
+**Live demo**: [Renegados](https://app.renegados.es) - A Spanish-language community running Repostea in production.
+
+### Features
+
+- **Content**: Posts, comments, polls, media uploads
+- **Voting**: Karma system with reputation levels
+- **Communities**: Multiple "subs" with independent moderation
+- **Real-time**: WebSocket chat (Agora), live notifications
+- **Federation**: ActivityPub support (connect with Mastodon, Lemmy, Mbin)
+- **i18n**: 15+ languages supported
+- **Auth**: Local accounts + OAuth (Google, Twitter, Telegram, Mastodon)
+- **Moderation**: Reports, bans, spam detection, admin panel
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Backend | Laravel 12, PHP 8.2+ |
+| Frontend | [Nuxt 3](https://github.com/repostea/client), Vue 3, TypeScript |
+| Database | MySQL 8.0+ / MariaDB 10.6+ |
+| Cache | Redis 7+ (optional, recommended) |
+| WebSocket | Laravel Reverb |
+| Auth | Laravel Sanctum |
+
+## Quick Start (Development)
+
+### Requirements
+
+- PHP 8.2+
+- Composer 2.x
+- Node.js 18+ and pnpm
+- MySQL 8.0+ or MariaDB 10.6+
+- Redis 7+ (optional but recommended)
+
+### 1. Clone repositories
+
+```bash
+# Backend (this repo)
+git clone https://github.com/repostea/server.git
+cd server
+
+# Frontend (in a separate directory)
+git clone https://github.com/repostea/client.git ../client
+```
+
+### 2. Backend setup
+
+```bash
+# Install dependencies
+composer install
+
+# Configure environment
+cp .env.example .env
+php artisan key:generate
+
+# Edit .env with your database credentials
+nano .env
+
+# Create database tables
+php artisan migrate
+
+# (Optional) Load sample data
+php artisan db:seed
+
+# Create storage symlink
+php artisan storage:link
+```
+
+### 3. Frontend setup
+
+```bash
+cd ../client
+
+# Install dependencies
+pnpm install
+
+# Configure environment
+cp .env.example .env
+```
+
+### 4. Start development servers
+
+```bash
+# Option A: From server directory (starts everything)
+cd server
+composer dev
+
+# Option B: Manually (two terminals)
+# Terminal 1 - Backend
+php artisan serve
+
+# Terminal 2 - Frontend
+cd client && pnpm dev
+```
+
+Visit:
+- **Frontend**: http://localhost:3000
+- **API**: http://localhost:8000
+
+## Quick Start with Docker (Alternative)
+
+> **Note**: Docker is provided for quickly testing the platform locally. For production, we recommend the manual installation described in [INSTALL.md](INSTALL.md).
+
+```bash
+# Clone both repositories
+git clone https://github.com/repostea/server.git
+git clone https://github.com/repostea/client.git
+
+# Start everything
+cd server
+docker compose up -d
+
+# Wait ~2 minutes for first build, then visit:
+# http://localhost:3000
+```
+
+Default login: `admin` / `changeme123`
+
+To stop: `docker compose down`
+
+To reset everything: `docker compose down -v`
+
+## Production Deployment
+
+See **[INSTALL.md](INSTALL.md)** for complete production deployment guide including:
+
+- Server requirements
+- Nginx/Apache configuration
+- SSL setup
+- Process management (PM2/Supervisor)
+- Performance optimization
+
+## Configuration
+
+### Essential Environment Variables
+
+**Backend** (`.env`):
+```env
+APP_NAME=YourSiteName
+APP_URL=https://api.yoursite.com
+FRONTEND_URL=https://yoursite.com
+
+DB_DATABASE=repostea
+DB_USERNAME=your_user
+DB_PASSWORD=your_password
+```
+
+**Frontend** (`client/.env`):
+```env
+NUXT_PUBLIC_API_BASE=https://api.yoursite.com/api
+NUXT_PUBLIC_SITE_URL=https://yoursite.com
+NUXT_PUBLIC_APP_NAME=YourSiteName
+```
+
+See `.env.example` files for all available options.
 
 ## Project Structure
 
-The project is divided into two main parts:
-
-- **Backend API (this repository)**: Developed with Laravel 12
-- **Frontend**: Developed with Nuxt, located in the `../client` directory
-
-## Requirements
-
-- PHP 8.2 or higher
-- Composer
-- Node.js and npm/pnpm
-- Database compatible with Laravel (MySQL, PostgreSQL, SQLite)
-
-### Supported Platforms
-
-✅ **Linux** | ✅ **macOS** | ✅ **Windows** | ✅ **WSL2**
-
-*Git Hooks work seamlessly across all platforms*
-
-## Installation
-
-### Backend API
-
-1. Clone this repository:
-```bash
-git clone https://github.com/repostea/repostea.git
-cd repostea
+```
+server/
+├── app/
+│   ├── Console/Commands/   # Artisan commands
+│   ├── Http/Controllers/   # API controllers
+│   ├── Models/             # Eloquent models
+│   └── Services/           # Business logic
+├── database/
+│   ├── migrations/         # Database schema
+│   └── seeders/            # Sample data
+├── routes/
+│   ├── api.php             # API routes
+│   └── web.php             # Web routes
+└── tests/                  # Pest tests
 ```
 
-2. Install dependencies (Git Hooks will be configured automatically):
-```bash
-composer install
-```
-> ✅ **Git Hooks Setup**: Quality checks (Laravel Pint, PHPStan, Tests) are now automatically configured!
-
-3. Set up the environment:
-```bash
-cp .env.example .env
-php artisan key:generate
-```
-
-4. Configure the database in the `.env` file
-
-5. Run migrations:
-```bash
-php artisan migrate
-```
-
-6. Optionally, you can load sample data:
-```bash
-php artisan db:seed
-```
-
-### Frontend (Nuxt)
-
-1. Navigate to the client directory:
-```bash
-cd ../client
-```
-
-2. Install dependencies:
-```bash
-pnpm install
-```
-
-3. Set up the environment:
-```bash
-cp .env.example .env
-```
-
-## Development Execution
-
-To facilitate development, you can use the `composer dev` command which will simultaneously start:
-- The Laravel API server
-- The Laravel queue worker
-- Vite for asset compilation
-- The Nuxt development server
+## Commands
 
 ```bash
-cd server  # Make sure you're in the server directory
-composer dev
+# Development
+composer dev              # Start all services
+php artisan serve         # API server only
+php artisan queue:listen  # Process background jobs
+php artisan reverb:start  # WebSocket server
+
+# Quality
+composer quality          # Run Pint + PHPStan + Tests
+composer quality-fix      # Auto-fix code style
+
+# Database
+php artisan migrate       # Run migrations
+php artisan db:seed       # Load sample data
+php artisan tinker        # Interactive shell
 ```
 
-> **Important**: For `composer dev` to work correctly, the client must be located at `../client` relative to the server directory.
-
-## API
-
-The API is structured following RESTful best practices and uses Laravel Sanctum for authentication.
-
-### Main endpoints
-
-- `/api/v1/posts`: Post management
-- `/api/v1/comments`: Comment management
-- `/api/v1/tags`: Tag management
-- `/api/v1/users`: User management
-
-See the complete API documentation for more details.
-
-## Key Features
-
-### Voting System
-
-The platform features an advanced voting system:
-
-- For posts: Only positive votes
-- For comments: Positive and negative votes with specific types (didactic, interesting, elaborate, funny, incomplete, irrelevant, false, out of place)
-
-### Karma System
-
-Users earn karma points based on their activity:
-- Receiving positive votes on their posts and comments
-- Publishing content regularly
-- Maintaining a daily activity streak
-
-### Social Features
-
-- Saved lists (favorites, read later, custom)
-- Tag following
-- Badges based on karma level
-
-## Code Quality & Tests
-
-### Automatic Quality Checks ✨
-
-This project has **pre-commit hooks** that automatically run:
-- **Laravel Pint** (code formatting)
-- **PHPStan** (static analysis)
-- **Pest Tests** (core functionality)
-
-**Commits are blocked if quality checks fail!**
-
-### Manual Commands
+## Testing
 
 ```bash
-# Run all quality checks
-composer quality
+# Run all tests
+php artisan test
 
-# Fix code formatting
-composer quality-fix
+# Run specific test
+php artisan test --filter=PostTest
 
-# Run specific tools
-./vendor/bin/pint              # Format code
-./vendor/bin/phpstan analyse   # Static analysis
-./vendor/bin/pest              # Run all tests
+# With coverage
+php artisan test --coverage
 ```
 
-### For New Team Members
+## Contributing
 
-Quality checks are **automatically configured** when you run `composer install`. No additional setup needed! 🎉
+We welcome contributions! Please:
 
-> See `DEVELOPMENT.md` for detailed development guidelines.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Run quality checks (`composer quality`)
+4. Commit your changes
+5. Open a Pull Request
 
-## 💬 Using Repostea?
+## Using Repostea?
 
-We'd love to hear from you! If you're using Repostea for your project, please [open an issue](https://github.com/repostea/repostea/issues/new?labels=showcase&title=Showcase:%20[Your%20Project%20Name]) to let us know. It helps us understand how the project is being used and motivates continued development.
+We'd love to hear from you! If you're running a Repostea instance, please [open an issue](https://github.com/repostea/server/issues/new?labels=showcase&title=Showcase:%20[Your%20Site%20Name]) to let us know.
+
+## Related Repositories
+
+- **Frontend**: [repostea/client](https://github.com/repostea/client) - Nuxt 3 application
 
 ## License
 
-[GPL-3.0](LICENSE)
+[GPL-3.0](LICENSE) - You can use, modify, and distribute this software. If you modify and deploy it publicly, you must share your changes.
