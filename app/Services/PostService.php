@@ -10,10 +10,12 @@ use App\Models\ActivityPubPostSettings;
 use App\Models\Post;
 use App\Models\Sub;
 use App\Models\Vote;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\CursorPaginator;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -31,18 +33,27 @@ final class PostService
         $this->mediaService = $mediaService;
     }
 
-    public function getPosts(Request $request): Paginator|CursorPaginator
+    public function getPosts(Request $request): Paginator|CursorPaginator|LengthAwarePaginator
     {
         $cacheKey = $this->generateCacheKey($request);
         $useCursor = $request->has('cursor') || $request->input('pagination') === 'cursor';
         $cursorValue = $request->input('cursor');
+        $paginationToken = $request->input('pagination_token');
 
-        $postsData = Cache::tags(['posts'])->remember($cacheKey, now()->addSeconds(self::CACHE_TTL), function () use ($request, $useCursor, $cursorValue) {
+        $postsData = Cache::tags(['posts'])->remember($cacheKey, now()->addSeconds(self::CACHE_TTL), function () use ($request, $useCursor, $cursorValue, $paginationToken) {
             $query = Post::query();
+
+            // Apply pagination token filter for stable pagination
+            // This ensures the same posts appear on the same page during a session
+            if ($paginationToken !== null) {
+                $timestamp = Carbon::createFromTimestamp((int) $paginationToken);
+                $query->where('created_at', '<=', $timestamp);
+            }
+
             $this->applyFilters($query, $request->all());
             $this->applySorting($query, $request->all());
 
-            $perPage = $request->input('per_page', 15);
+            $perPage = $request->input('per_page', 50);
 
             $query = $query->with([
                 'user' => fn ($query) => $query->withTrashed(),
@@ -74,14 +85,14 @@ final class PostService
         return $postsData;
     }
 
-    public function getFrontpage(Request $request): Paginator|CursorPaginator
+    public function getFrontpage(Request $request): Paginator|CursorPaginator|LengthAwarePaginator
     {
         $request->merge(['section' => 'frontpage']);
 
         return $this->getPosts($request);
     }
 
-    public function getPending(Request $request): Paginator|CursorPaginator
+    public function getPending(Request $request): Paginator|CursorPaginator|LengthAwarePaginator
     {
         $request->merge(['section' => 'pending']);
 

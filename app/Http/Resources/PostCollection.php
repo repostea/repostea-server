@@ -49,6 +49,9 @@ final class PostCollection extends ResourceCollection
                 'current_page' => $resourceCollection['current_page'] ?? 1,
                 'per_page' => $resourceCollection['per_page'] ?? count($this->collection),
                 'last_page' => $resourceCollection['last_page'] ?? 1,
+                // Include pagination_token for stable pagination across page navigation
+                // If a token was provided in the request, return it; otherwise generate a new one
+                'pagination_token' => $request->input('pagination_token') ?? now()->timestamp,
             ],
         ];
     }

@@ -160,7 +160,7 @@ final class BackupDatabases extends Command
             if (filemtime($file) < $cutoffTime) {
                 unlink($file);
                 $deletedCount++;
-                $this->line("   Deleted: " . basename($file));
+                $this->line('   Deleted: ' . basename($file));
             }
         }
 
