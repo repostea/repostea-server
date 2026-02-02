@@ -42,14 +42,15 @@
                 <h3 class="text-lg font-semibold mb-3">Reporter Information</h3>
                 <div class="flex items-center space-x-4">
                     <div class="h-12 w-12 rounded-full flex items-center justify-center overflow-hidden bg-gray-100">
-                        @if($report->reportedBy->avatar)
-                            <img src="{{ $report->reportedBy->avatar }}" alt="{{ $report->reportedBy->username }}" class="w-full h-full object-cover">
+                        @if($report->reportedBy?->avatar)
+                            <img src="{{ $report->reportedBy?->avatar }}" alt="{{ $report->reportedBy?->username ?? 'Deleted' }}" class="w-full h-full object-cover">
                         @else
                             <i class="fas fa-user text-gray-400"></i>
                         @endif
                     </div>
                     <div>
-                        <p class="text-sm font-medium text-gray-900 italic">{{ $report->reportedBy->username }}</p>
+                        <p class="text-sm font-medium text-gray-900 italic">{{ $report->reportedBy?->username ?? 'Deleted' }}</p>
+                        @if($report->reportedBy)
                         <div class="flex gap-3 text-xs mt-1">
                             <x-admin.action-link :href="route('admin.users.show', $report->reportedBy)">
                                 <i class="fas fa-user-shield"></i> View in Admin
@@ -58,6 +59,7 @@
                                 View in App
                             </x-admin.action-link>
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -68,14 +70,14 @@
                     <h3 class="text-lg font-semibold mb-3">Reported User</h3>
                     <div class="flex items-center space-x-4">
                         <div class="h-12 w-12 rounded-full flex items-center justify-center overflow-hidden bg-gray-100">
-                            @if($report->reportedUser->avatar)
-                                <img src="{{ $report->reportedUser->avatar }}" alt="{{ $report->reportedUser->username }}" class="w-full h-full object-cover">
+                            @if($report->reportedUser?->avatar)
+                                <img src="{{ $report->reportedUser?->avatar }}" alt="{{ $report->reportedUser?->username ?? 'Deleted' }}" class="w-full h-full object-cover">
                             @else
                                 <i class="fas fa-user text-gray-400"></i>
                             @endif
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-gray-900 italic">{{ $report->reportedUser->username }}</p>
+                            <p class="text-sm font-medium text-gray-900 italic">{{ $report->reportedUser?->username ?? 'Deleted' }}</p>
                             <div class="flex gap-3 text-xs mt-1">
                                 <x-admin.action-link :href="route('admin.users.show', $report->reportedUser)">
                                     <i class="fas fa-user-shield"></i> View in Admin
@@ -133,10 +135,10 @@
                     @elseif($report->reportable_type === 'App\\Models\\User' && $report->reportable)
                         <div>
                             <dt class="text-sm font-medium text-gray-700 mb-1">Reported User</dt>
-                            <dd class="text-sm text-gray-900 italic">{{ $report->reportable->username }}</dd>
+                            <dd class="text-sm text-gray-900 italic">{{ $report->reportable?->username ?? 'Deleted' }}</dd>
                         </div>
                         @php
-                            $appUrl = config('app.client_url') . '/u/' . $report->reportable->username;
+                            $appUrl = config('app.client_url') . '/u/' . ($report->reportable?->username ?? 'deleted');
                         @endphp
                         <x-admin.action-link :href="$appUrl" :external="true" class="inline-block text-sm">
                             View Profile in App
@@ -174,7 +176,7 @@
                     <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                             <dt class="font-medium text-gray-700">Reviewed By</dt>
-                            <dd class="text-gray-900 italic">{{ $report->reviewedBy->username ?? 'N/A' }}</dd>
+                            <dd class="text-gray-900 italic">{{ $report->reviewedBy?->username ?? 'N/A' }}</dd>
                         </div>
                         <div>
                             <dt class="font-medium text-gray-700">Reviewed At</dt>
@@ -207,7 +209,7 @@
                         @foreach($report->notes as $note)
                             <div class="bg-gray-50 rounded p-4 border-l-4 border-gray-400">
                                 <div class="flex items-center justify-between mb-2">
-                                    <span class="text-sm font-semibold text-gray-900 italic">{{ $note->user->username }}</span>
+                                    <span class="text-sm font-semibold text-gray-900 italic">{{ $note->user?->username ?? 'Deleted' }}</span>
                                     <span class="text-xs text-gray-500">{{ $note->created_at->format('Y-m-d H:i:s') }}</span>
                                 </div>
                                 <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ $note->note }}</p>

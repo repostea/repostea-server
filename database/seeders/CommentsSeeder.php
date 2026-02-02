@@ -16,23 +16,22 @@ final class CommentsSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get posts and users
         $posts = Post::all();
         $users = User::all();
 
         if ($posts->isEmpty()) {
-            $this->command->info('No hay posts disponibles para crear comentarios. Por favor, ejecuta PostsSeeder primero.');
+            $this->command->info('No posts available to create comments. Please run PostsSeeder first.');
 
             return;
         }
 
         if ($users->isEmpty()) {
-            $this->command->info('No hay usuarios disponibles para crear comentarios.');
+            $this->command->info('No users available to create comments.');
 
             return;
         }
 
-        $this->command->info('Creando comentarios de ejemplo...');
+        $this->command->info('Creating sample comments...');
 
         $commentTemplates = $this->getCommentTemplates();
 
@@ -74,9 +73,9 @@ final class CommentsSeeder extends Seeder
                         }
 
                         if (rand(0, 100) > 50) {
-                            $replyContent = "Respuesta a @{$user->username}: " . $commentTemplates[array_rand($commentTemplates)];
+                            $replyContent = "Reply to @{$user->username}: " . $commentTemplates[array_rand($commentTemplates)];
                         } else {
-                            $replyContent = "Respuesta a @{$user->username}: " . $this->generateRandomComment();
+                            $replyContent = "Reply to @{$user->username}: " . $this->generateRandomComment();
                         }
 
                         Comment::create([
@@ -95,7 +94,7 @@ final class CommentsSeeder extends Seeder
             $post->comment_count = $actualCommentCount;
             $post->save();
 
-            $this->command->info("Añadidos {$actualCommentCount} comentarios al post: {$post->title}");
+            $this->command->info("Added {$actualCommentCount} comments to post: {$post->title}");
         }
     }
 
@@ -106,52 +105,52 @@ final class CommentsSeeder extends Seeder
     {
         return [
             // Positive comments
-            'Me encantó este artículo, muy informativo y bien escrito.',
-            'Gran aporte a la comunidad, gracias por compartir.',
-            'Esto es exactamente lo que estaba buscando, muchas gracias.',
-            'Excelente explicación, ahora entiendo mucho mejor el tema.',
-            'Muy interesante perspectiva, no lo había visto así antes.',
-            'Increíble análisis, me ha abierto los ojos a nuevas posibilidades.',
-            'Sin duda uno de los mejores posts que he leído últimamente.',
-            'Gracias por compartir tu conocimiento de manera tan clara.',
-            'Me ha resultado muy útil esta información, la pondré en práctica.',
-            'Contenido de calidad como este es lo que hace grande a esta comunidad.',
+            'I loved this article, very informative and well written.',
+            'Great contribution to the community, thanks for sharing.',
+            'This is exactly what I was looking for, thank you so much.',
+            'Excellent explanation, I now understand the topic much better.',
+            'Very interesting perspective, I hadn\'t seen it that way before.',
+            'Incredible analysis, it has opened my eyes to new possibilities.',
+            'Definitely one of the best posts I\'ve read lately.',
+            'Thanks for sharing your knowledge so clearly.',
+            'I found this information very useful, I\'ll put it into practice.',
+            'Quality content like this is what makes this community great.',
 
-            // Comentarios neutros/preguntas
-            '¿Alguien tiene más información sobre esto?',
-            'Me gustaría saber más sobre este tema, ¿hay alguna fuente adicional?',
-            '¿Cuál es tu opinión sobre las implicaciones de esto a largo plazo?',
-            'Interesante, aunque creo que hay más aspectos que considerar.',
-            'No estoy seguro de entender completamente, ¿podrías explicar mejor la parte X?',
-            '¿Existe alguna alternativa a lo que propones?',
-            '¿Cómo se relaciona esto con la situación actual en el sector?',
-            'Me quedé con una duda sobre la parte Y, ¿alguien podría aclararla?',
-            'Es un buen punto de partida, pero ¿qué pasa con los casos excepcionales?',
-            '¿Cuál sería el siguiente paso después de implementar esto?',
+            // Neutral comments/questions
+            'Does anyone have more information on this?',
+            'I\'d like to know more about this topic, are there any additional sources?',
+            'What\'s your opinion on the long-term implications of this?',
+            'Interesting, although I think there are more aspects to consider.',
+            'I\'m not sure I fully understand, could you explain part X better?',
+            'Is there an alternative to what you propose?',
+            'How does this relate to the current situation in the sector?',
+            'I have a question about part Y, could someone clarify?',
+            'It\'s a good starting point, but what about edge cases?',
+            'What would be the next step after implementing this?',
 
             // Technology comments
-            'He implementado algo similar en mi proyecto y funciona muy bien.',
-            'Esta tecnología tiene mucho potencial, especialmente combinada con IA.',
-            '¿Alguien ha probado alternativas como X o Y para esto?',
-            'El rendimiento es excelente, pero echo de menos algunas características.',
-            'La documentación de esta herramienta podría mejorar bastante.',
-            'Acabo de probar este método y resolvió un problema que llevaba semanas intentando solucionar.',
-            'Interesante enfoque, pero en producción podría dar problemas de escalabilidad.',
-            'Por mi experiencia, combinar esto con microservicios da resultados sorprendentes.',
-            '¿Hay alguna biblioteca que facilite la implementación de esta técnica?',
-            'Este paradigma está ganando mucha tracción en el ecosistema actual.',
+            'I\'ve implemented something similar in my project and it works great.',
+            'This technology has a lot of potential, especially combined with AI.',
+            'Has anyone tried alternatives like X or Y for this?',
+            'The performance is excellent, but I miss some features.',
+            'The documentation for this tool could use some improvement.',
+            'I just tried this method and it solved a problem I\'d been trying to fix for weeks.',
+            'Interesting approach, but in production it could have scalability issues.',
+            'In my experience, combining this with microservices gives surprising results.',
+            'Is there a library that facilitates implementing this technique?',
+            'This paradigm is gaining a lot of traction in the current ecosystem.',
 
             // Scientific comments
-            'Este descubrimiento podría cambiar completamente nuestro entendimiento del tema.',
-            'Me pregunto cómo afectará esto a las investigaciones actuales en el campo.',
-            'Los datos presentados son convincentes, pero me gustaría ver más estudios.',
-            '¿Cuáles son las implicaciones éticas de este avance?',
-            'Fascinante hallazgo, estaré atento a los desarrollos futuros.',
-            'La metodología utilizada es rigurosa, lo que da mucha credibilidad a los resultados.',
-            'Me gustaría ver cómo se replica este experimento en diferentes condiciones.',
-            'Este estudio contradice lo que se pensaba hasta ahora, muy interesante.',
-            'La intersección de estas dos disciplinas está generando avances increíbles.',
-            'La muestra del estudio parece pequeña, ¿será suficiente para generalizar?',
+            'This discovery could completely change our understanding of the topic.',
+            'I wonder how this will affect current research in the field.',
+            'The data presented is convincing, but I\'d like to see more studies.',
+            'What are the ethical implications of this advancement?',
+            'Fascinating finding, I\'ll be watching for future developments.',
+            'The methodology used is rigorous, which gives the results a lot of credibility.',
+            'I\'d like to see how this experiment replicates under different conditions.',
+            'This study contradicts what was previously thought, very interesting.',
+            'The intersection of these two disciplines is generating incredible advances.',
+            'The study sample seems small, will it be enough to generalize?',
         ];
     }
 
@@ -161,34 +160,34 @@ final class CommentsSeeder extends Seeder
     private function generateRandomComment(): string
     {
         $openings = [
-            'Me parece que', 'Creo que', 'En mi opinión,', 'Desde mi punto de vista,',
-            'Considero que', 'He observado que', 'He notado que', 'Es interesante que',
-            'Coincido en que', 'No estoy seguro si', 'Me pregunto si', 'Es fascinante cómo',
-            'Hay que reconocer que', 'No cabe duda de que', 'Está claro que', 'Es evidente que',
-            'Me sorprende que', 'Es curioso que', 'Debo decir que', 'Tengo que admitir que',
+            'I think that', 'I believe that', 'In my opinion,', 'From my point of view,',
+            'I consider that', 'I\'ve observed that', 'I\'ve noticed that', 'It\'s interesting that',
+            'I agree that', 'I\'m not sure if', 'I wonder if', 'It\'s fascinating how',
+            'We must acknowledge that', 'There\'s no doubt that', 'It\'s clear that', 'It\'s evident that',
+            'I\'m surprised that', 'It\'s curious that', 'I must say that', 'I have to admit that',
         ];
 
         $middles = [
-            'este tema es muy relevante', 'esta información es valiosa', 'este enfoque es acertado',
-            'este análisis es profundo', 'este artículo aborda bien', 'este concepto es importante',
-            'esta perspectiva es interesante', 'esta explicación clarifica muchas dudas',
-            'este contenido está bien documentado', 'esta visión aporta mucho al debate',
-            'este post genera buenas reflexiones', 'esta discusión es necesaria',
-            'estas ideas son innovadoras', 'estos datos son reveladores', 'este caso es un buen ejemplo',
-            'este problema afecta a muchos', 'esta solución es práctica', 'este método es eficiente',
-            'esta tecnología tiene futuro', 'este campo está evolucionando rápidamente',
+            'this topic is very relevant', 'this information is valuable', 'this approach is appropriate',
+            'this analysis is insightful', 'this article addresses well', 'this concept is important',
+            'this perspective is interesting', 'this explanation clarifies many doubts',
+            'this content is well documented', 'this view contributes a lot to the debate',
+            'this post generates good reflections', 'this discussion is necessary',
+            'these ideas are innovative', 'this data is revealing', 'this case is a good example',
+            'this problem affects many', 'this solution is practical', 'this method is efficient',
+            'this technology has a future', 'this field is evolving rapidly',
         ];
 
         $closings = [
-            'en el contexto actual.', 'para todos los interesados.', 'en el mundo de hoy.',
-            'para nuestro futuro.', 'en nuestra sociedad.', 'para profesionales del sector.',
-            'en esta era digital.', 'para comprender el panorama completo.',
-            'en términos prácticos.', 'para quienes buscan soluciones.',
-            'desde una perspectiva global.', 'considerando las tendencias actuales.',
-            'si valoramos la innovación.', 'en el entorno competitivo actual.',
-            'dadas las circunstancias.', 'con los recursos disponibles.',
-            'según mi experiencia.', 'basado en lo que he observado.',
-            'a juzgar por los resultados.', 'viendo los datos presentados.',
+            'in the current context.', 'for all those interested.', 'in today\'s world.',
+            'for our future.', 'in our society.', 'for professionals in the sector.',
+            'in this digital era.', 'to understand the full picture.',
+            'in practical terms.', 'for those seeking solutions.',
+            'from a global perspective.', 'considering current trends.',
+            'if we value innovation.', 'in today\'s competitive environment.',
+            'given the circumstances.', 'with the available resources.',
+            'in my experience.', 'based on what I\'ve observed.',
+            'judging by the results.', 'looking at the data presented.',
         ];
 
         $opening = $openings[array_rand($openings)];

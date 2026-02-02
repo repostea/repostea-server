@@ -131,6 +131,81 @@ services:
     command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=90"]
 
   # ===================
+  # Scheduler (Cron)
+  # ===================
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: repostea-scheduler
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      APP_NAME: Repostea
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: repostea
+      DB_USERNAME: repostea
+      DB_PASSWORD: repostea123
+
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ""
+      REDIS_PORT: 6379
+    command: ["sh", "-c", "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"]
+
+  # ===================
+  # WebSocket (Reverb)
+  # ===================
+  reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: repostea-reverb
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      APP_NAME: Repostea
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: repostea
+      DB_USERNAME: repostea
+      DB_PASSWORD: repostea123
+
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ""
+      REDIS_PORT: 6379
+
+      REVERB_APP_ID: repostea-local
+      REVERB_APP_KEY: repostea-key
+      REVERB_APP_SECRET: repostea-secret
+      REVERB_HOST: "0.0.0.0"
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+    ports:
+      - "8080:8080"
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+
+  # ===================
   # Frontend
   # ===================
   client:
@@ -148,6 +223,12 @@ services:
       NUXT_PUBLIC_SITE_URL: http://localhost:3000
       NUXT_PUBLIC_CLIENT_URL: http://localhost:3000
       NUXT_PUBLIC_APP_NAME: Repostea
+
+      # WebSocket (Reverb)
+      NUXT_PUBLIC_REVERB_APP_KEY: repostea-key
+      NUXT_PUBLIC_REVERB_HOST: localhost
+      NUXT_PUBLIC_REVERB_PORT: 8080
+      NUXT_PUBLIC_REVERB_SCHEME: http
     ports:
       - "3000:3000"
 

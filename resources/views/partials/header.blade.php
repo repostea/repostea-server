@@ -3,7 +3,7 @@
         <div class="flex justify-between items-center">
             <div class="text-2xl font-bold flex items-center">
                 <a href="{{ localized_route('home') }}" class="flex items-center hover:opacity-90 transition gap-3">
-                    <img src="{{ asset('favicon-96x96.png') }}" alt="{{ config('site.name') }}" class="w-10 h-10 rounded-lg shadow-md">
+                    <img src="{{ asset(config('site.favicon_96', 'favicon-96x96.png')) }}" alt="{{ config('site.name') }}" class="w-10 h-10 rounded-lg shadow-md">
                     <span>{{ config('site.name') }}</span>
                 </a>
             </div>

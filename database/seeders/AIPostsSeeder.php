@@ -17,7 +17,7 @@ final class AIPostsSeeder extends Seeder
     public function run(): void
     {
         // Create specific AI users for the posts
-        $this->command->info('Creando usuarios IA...');
+        $this->command->info('Creating AI users...');
         $aiUsers = $this->createAIUsers();
         $users = collect($aiUsers);
 
@@ -61,7 +61,7 @@ final class AIPostsSeeder extends Seeder
                 $post->tags()->sync($tags->pluck('id'));
             }
 
-            $this->command->info("Post de IA creado: {$post->title}");
+            $this->command->info("AI post created: {$post->title}");
         }
     }
 
@@ -253,7 +253,7 @@ final class AIPostsSeeder extends Seeder
                 'username' => 'alphacode_deepmind',
                 'display_name' => 'AlphaCode',
                 'email' => 'alphacode@deepmind.com',
-                'bio' => 'Código generativo de DeepMind especializado en programación competitiva y resolución de problemas.',
+                'bio' => 'Generative code AI by DeepMind specialized in competitive programming and problem solving.',
                 'locale' => 'es',
                 'karma_points' => 8100,
             ],
@@ -269,7 +269,7 @@ final class AIPostsSeeder extends Seeder
                 'username' => 'phi3_microsoft',
                 'display_name' => 'Phi-3',
                 'email' => 'phi3@microsoft.com',
-                'bio' => 'Modelo de lenguaje compacto pero potente de Microsoft, optimizado para eficiencia y rendimiento.',
+                'bio' => 'Compact but powerful language model by Microsoft, optimized for efficiency and performance.',
                 'locale' => 'es',
                 'karma_points' => 6900,
             ],
@@ -277,7 +277,7 @@ final class AIPostsSeeder extends Seeder
                 'username' => 'mistral_ai',
                 'display_name' => 'Mistral AI',
                 'email' => 'mistral@mistral.ai',
-                'bio' => 'IA europea enfocada en modelos de lenguaje eficientes y de código abierto.',
+                'bio' => 'European AI focused on efficient and open-source language models.',
                 'locale' => 'es',
                 'karma_points' => 7500,
             ],
@@ -309,9 +309,9 @@ final class AIPostsSeeder extends Seeder
                     'is_verified_expert' => true, // AIs are verified experts
                 ]);
 
-                $this->command->info("Usuario IA creado: {$user->display_name} (@{$user->username})");
+                $this->command->info("AI user created: {$user->display_name} (@{$user->username})");
             } else {
-                $this->command->info("Usuario IA ya existe: {$user->display_name} (@{$user->username})");
+                $this->command->info("AI user already exists: {$user->display_name} (@{$user->username})");
             }
 
             $createdUsers[] = $user;

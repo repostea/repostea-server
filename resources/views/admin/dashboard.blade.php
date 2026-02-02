@@ -190,7 +190,7 @@
                                 {{ ucfirst($report->reason) }}
                             </p>
                             <p class="text-xs text-gray-500 mt-1">
-                                <span class="hidden sm:inline">Reported by </span><strong>{{ $report->reportedBy->username }}</strong>
+                                <span class="hidden sm:inline">Reported by </span><strong>{{ $report->reportedBy?->username ?? 'Deleted' }}</strong>
                                 <span class="hidden sm:inline"> • </span>
                                 <span class="block sm:inline text-xs">{{ $report->created_at->diffForHumans() }}</span>
                             </p>
@@ -247,7 +247,7 @@
                             <p class="text-xs text-gray-500 mt-1">
                                 <strong>{{ $log->moderator?->username ?? 'System' }}</strong>
                                 @if($log->targetUser)
-                                    → <strong>{{ $log->targetUser->username }}</strong>
+                                    → <strong>{{ $log->targetUser?->username ?? 'Deleted' }}</strong>
                                 @endif
                                 <span class="hidden sm:inline"> • </span>
                                 <span class="block sm:inline">{{ $log->created_at->diffForHumans() }}</span>

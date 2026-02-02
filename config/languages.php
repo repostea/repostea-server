@@ -2,8 +2,15 @@
 
 declare(strict_types=1);
 
+// Parse ACTIVE_LANGUAGES from env (comma-separated list)
+$activeLanguages = array_filter(
+    array_map('trim', explode(',', env('ACTIVE_LANGUAGES', 'es'))),
+);
+
 // config/languages.php
 return [
+    'active_languages' => $activeLanguages,
+
     'available' => [
         // Europa
         'es' => [

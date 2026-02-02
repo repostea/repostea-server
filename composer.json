@@ -116,6 +116,15 @@
         ],
         "deploy:client": [
             "bash ../deploy.sh --client-only"
+        ],
+        "repostea": [
+            "bash ../deploy-repostea.sh"
+        ],
+        "repostea:server": [
+            "bash ../deploy-repostea.sh --server-only"
+        ],
+        "repostea:client": [
+            "bash ../deploy-repostea.sh --client-only"
         ]
     },
     "extra": {

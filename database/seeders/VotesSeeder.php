@@ -20,18 +20,18 @@ final class VotesSeeder extends Seeder
         $comments = Comment::all();
 
         if ($users->isEmpty()) {
-            $this->command->info('No hay usuarios disponibles para crear votos.');
+            $this->command->info('No users available to create votes.');
 
             return;
         }
 
         if ($posts->isEmpty() && $comments->isEmpty()) {
-            $this->command->info('No hay posts ni comentarios disponibles para votar.');
+            $this->command->info('No posts or comments available to vote on.');
 
             return;
         }
 
-        $this->command->info('Creando votos de ejemplo...');
+        $this->command->info('Creating sample votes...');
 
         if (! $posts->isEmpty()) {
             $totalPostVotes = 0;
@@ -79,10 +79,10 @@ final class VotesSeeder extends Seeder
                 $post->votes_count = $upvotes;
                 $post->save();
 
-                $this->command->info("Añadidos {$upvotes} votos positivos y {$downvotes} votos negativos al post: {$post->title}");
+                $this->command->info("Added {$upvotes} upvotes and {$downvotes} downvotes to post: {$post->title}");
             }
 
-            $this->command->info("Total de votos en posts: {$totalPostVotes}");
+            $this->command->info("Total post votes: {$totalPostVotes}");
         }
 
         if (! $comments->isEmpty()) {
@@ -109,10 +109,8 @@ final class VotesSeeder extends Seeder
 
                     $voteValue = (rand(1, 100) <= 80) ? 1 : -1;
 
-                    // Assign vote type with more realistic distribution
                     $voteType = null;
                     if ($voteValue > 0) {
-                        // Custom distribution for positive types
                         $weights = [
                             'interesting' => 40,
                             'didactic' => 25,
@@ -121,7 +119,6 @@ final class VotesSeeder extends Seeder
                         ];
                         $voteType = $this->getWeightedRandomType($weights);
                     } else {
-                        // Custom distribution for negative types
                         $weights = [
                             'irrelevant' => 40,
                             'incomplete' => 25,
@@ -139,7 +136,6 @@ final class VotesSeeder extends Seeder
                         'type' => $voteType,
                     ]);
 
-                    // Count by type for statistics
                     $typeCounts[$voteType]++;
 
                     if ($voteValue === 1) {
@@ -178,7 +174,6 @@ final class VotesSeeder extends Seeder
             }
         }
 
-        // Fallback just in case
         return array_key_first($weights);
     }
 }

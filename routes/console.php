@@ -48,3 +48,7 @@ Artisan::command('activitypub:cleanup-logs {--days=30 : Number of days to keep}'
 })->purpose('Clean up old ActivityPub delivery logs');
 
 Schedule::command('activitypub:cleanup-logs --days=30')->dailyAt('04:00');
+
+// Backup databases daily at 3:00 AM
+// Keeps backups for 7 days by default
+Schedule::command('backup:databases')->dailyAt('03:00');

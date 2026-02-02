@@ -24,7 +24,7 @@ Complete guide to deploy Repostea on a production server.
 | Node.js | 18+ | LTS recommended |
 | pnpm | 8+ | |
 | MySQL | 8.0+ | Or MariaDB 10.6+ |
-| Redis | 7+ | Optional but recommended |
+| Redis | 7+ | Required for cache, sessions & queues |
 | Nginx | 1.18+ | Or Apache 2.4+ |
 
 ### Required PHP Extensions

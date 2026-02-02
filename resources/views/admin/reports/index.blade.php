@@ -87,11 +87,13 @@
                                     @endif
                                 @elseif($report->reportable_type === 'App\\Models\\User' && $report->reportable)
                                     <p class="text-sm text-gray-700 mb-1">
-                                        User: <strong class="italic">{{ $report->reportable->username }}</strong>
+                                        User: <strong class="italic">{{ $report->reportable?->username ?? 'Deleted' }}</strong>
                                     </p>
+                                    @if($report->reportable)
                                     <x-admin.action-link :href="config('app.client_url') . '/u/' . $report->reportable->username" :external="true" class="text-xs">
                                         View profile in app
                                     </x-admin.action-link>
+                                    @endif
                                 @else
                                     <p class="text-sm text-gray-500 italic">Content no longer available</p>
                                 @endif
@@ -103,14 +105,15 @@
                         <td class="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="h-8 w-8 rounded-full flex items-center justify-center overflow-hidden bg-gray-100 flex-shrink-0">
-                                    @if($report->reportedBy->avatar)
-                                        <img src="{{ $report->reportedBy->avatar }}" alt="{{ $report->reportedBy->username }}" class="w-full h-full object-cover">
+                                    @if($report->reportedBy?->avatar)
+                                        <img src="{{ $report->reportedBy?->avatar }}" alt="{{ $report->reportedBy?->username ?? 'Deleted' }}" class="w-full h-full object-cover">
                                     @else
                                         <i class="fas fa-user text-gray-400 text-sm"></i>
                                     @endif
                                 </div>
                                 <div class="ml-2">
-                                    <p class="text-sm font-medium text-gray-900 italic">{{ $report->reportedBy->username }}</p>
+                                    <p class="text-sm font-medium text-gray-900 italic">{{ $report->reportedBy?->username ?? 'Deleted' }}</p>
+                                    @if($report->reportedBy)
                                     <div class="flex gap-2 text-xs mt-0.5">
                                         <x-admin.action-link :href="route('admin.users.show', $report->reportedBy)">
                                             Admin
@@ -119,6 +122,7 @@
                                             App
                                         </x-admin.action-link>
                                     </div>
+                                    @endif
                                 </div>
                             </div>
                         </td>
@@ -151,7 +155,7 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <x-admin.badge :type="$report->status" :label="ucfirst($report->status)" />
                             @if(($report->status === 'resolved' || $report->status === 'dismissed') && $report->reviewedBy)
-                                <p class="text-xs text-gray-500 mt-1">By {{ $report->reviewedBy->username }}</p>
+                                <p class="text-xs text-gray-500 mt-1">By {{ $report->reviewedBy?->username ?? 'System' }}</p>
                             @endif
                         </td>
                         <td class="hidden xl:table-cell px-6 py-4 whitespace-nowrap">
@@ -197,18 +201,18 @@
                 @elseif($report->reportable_type === 'App\\Models\\Comment' && $report->reportable)
                     <p class="text-sm text-gray-700 mb-1 line-clamp-2">{{ Str::limit($report->reportable->content, 100) }}</p>
                 @elseif($report->reportable_type === 'App\\Models\\User' && $report->reportable)
-                    <p class="text-sm text-gray-700 mb-1">User: <strong class="italic">{{ $report->reportable->username }}</strong></p>
+                    <p class="text-sm text-gray-700 mb-1">User: <strong class="italic">{{ $report->reportable?->username ?? 'Deleted' }}</strong></p>
                 @endif
 
                 <div class="text-xs text-gray-600 space-y-0.5 mb-2">
                     <div>
                         <x-admin.mobile-label label="Reported by" />
-                        <span class="italic">{{ $report->reportedBy->username }}</span>
+                        <span class="italic">{{ $report->reportedBy?->username ?? 'Deleted' }}</span>
                     </div>
                     @if($report->reportedUser)
                         <div>
                             <x-admin.mobile-label label="Reported user" />
-                            <span class="italic">{{ $report->reportedUser->username }}</span>
+                            <span class="italic">{{ $report->reportedUser?->username ?? 'Deleted' }}</span>
                         </div>
                     @endif
                     <div>

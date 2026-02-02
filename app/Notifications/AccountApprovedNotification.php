@@ -37,7 +37,7 @@ final class AccountApprovedNotification extends Notification implements ShouldQu
         }
 
         $locale = $notifiable->locale ?? 'es';
-        $loginUrl = config('app.frontend_url') ? config('app.frontend_url') . "/{$locale}/auth/login" : url('/login');
+        $loginUrl = config('app.client_url') ? config('app.client_url') . "/{$locale}/auth/login" : url('/login');
 
         return (new MailMessage())
             ->subject(Lang::get('notifications.account_approval.approved.subject'))

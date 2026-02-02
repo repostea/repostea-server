@@ -143,7 +143,34 @@ test('queueVoteChange queues vote update', function (): void {
     $this->service->queueVoteChange($post, 1);
 
     $pending = Cache::get('realtime:pending:posts.frontpage');
-    expect($pending[$post->id]['votes'])->toBe($post->votes);
+    expect($pending[$post->id]['votes'])->toBe($post->votes_count);
+});
+
+test('queueVoteChange broadcasts integer not collection', function (): void {
+    $user = User::factory()->create();
+    $voter = User::factory()->create();
+    $post = Post::factory()->create([
+        'user_id' => $user->id,
+        'status' => 'published',
+        'votes_count' => 0,
+    ]);
+
+    // Create actual votes
+    $post->votes()->create(['user_id' => $voter->id, 'value' => 1, 'type' => 'default']);
+    $post->updateVotesCount();
+    $post->refresh();
+
+    $this->service->queueVoteChange($post, 1);
+
+    $pending = Cache::get('realtime:pending:posts.frontpage');
+    $broadcastedVotes = $pending[$post->id]['votes'];
+
+    // Must be an integer, not a collection
+    expect($broadcastedVotes)->toBeInt();
+    // Must match the actual vote count
+    expect($broadcastedVotes)->toBe(1);
+    // Double-check it matches the DB field
+    expect($broadcastedVotes)->toBe($post->votes_count);
 });
 
 test('queueCommentChange queues comment count update', function (): void {
@@ -157,7 +184,26 @@ test('queueCommentChange queues comment count update', function (): void {
     $this->service->queueCommentChange($post, 1);
 
     $pending = Cache::get('realtime:pending:posts.frontpage');
-    expect($pending[$post->id]['comments_count'])->toBe($post->comments_count);
+    expect($pending[$post->id]['comments_count'])->toBe($post->comment_count);
+});
+
+test('queueCommentChange broadcasts integer not null', function (): void {
+    $user = User::factory()->create();
+    $post = Post::factory()->create([
+        'user_id' => $user->id,
+        'status' => 'published',
+        'comment_count' => 5,
+    ]);
+
+    $this->service->queueCommentChange($post, 1);
+
+    $pending = Cache::get('realtime:pending:posts.frontpage');
+    $broadcastedCount = $pending[$post->id]['comments_count'];
+
+    // Must be an integer, not null (from wrong field name)
+    expect($broadcastedCount)->toBeInt();
+    expect($broadcastedCount)->toBe(5);
+    expect($broadcastedCount)->toBe($post->comment_count);
 });
 
 test('queueViewsChange queues views update', function (): void {
@@ -174,4 +220,24 @@ test('queueViewsChange queues views update', function (): void {
     $pending = Cache::get('realtime:pending:posts.frontpage');
     expect($pending[$post->id]['views'])->toBe(100);
     expect($pending[$post->id]['total_views'])->toBe(150);
+});
+
+test('queueViewsChange broadcasts integers not collections', function (): void {
+    $user = User::factory()->create();
+    $post = Post::factory()->create([
+        'user_id' => $user->id,
+        'status' => 'published',
+        'views' => 42,
+        'total_views' => 100,
+    ]);
+
+    $this->service->queueViewsChange($post);
+
+    $pending = Cache::get('realtime:pending:posts.frontpage');
+
+    // Must be integers, not collections from views() relation
+    expect($pending[$post->id]['views'])->toBeInt();
+    expect($pending[$post->id]['total_views'])->toBeInt();
+    expect($pending[$post->id]['views'])->toBe(42);
+    expect($pending[$post->id]['total_views'])->toBe(100);
 });

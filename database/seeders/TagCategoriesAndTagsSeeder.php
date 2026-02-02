@@ -78,7 +78,7 @@ final class TagCategoriesAndTagsSeeder extends Seeder
             ],
         ];
 
-        // Insertar tags
+        // Insert tags
         $tagsToInsert = [];
 
         foreach ($tagsByCategory as $categoryNameKey => $tags) {

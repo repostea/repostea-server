@@ -62,7 +62,7 @@ final class EmailChangeConfirmation extends Notification implements ShouldQueue
      */
     private function getConfirmationUrl(): string
     {
-        $frontendUrl = Config::get('app.frontend_url', Config::get('app.url'));
+        $frontendUrl = Config::get('app.client_url', Config::get('app.url'));
 
         return $frontendUrl . '/profile/confirm-email-change?token=' . $this->token;
     }

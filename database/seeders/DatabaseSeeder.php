@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\KarmaEvent;
-use App\Models\KarmaHistory;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -16,44 +13,33 @@ final class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $environment = app()->environment();
+        $forceDev = env('SEED_DEV_DATA', false);
+
+        if ($forceDev && $environment === 'production') {
+            $this->command->warn('⚠️  Running development seeders in production (SEED_DEV_DATA=true)');
+            $this->command->warn('   This will create fake users, posts, comments, and votes.');
+            $this->seedDevelopmentData();
+
+            return;
+        }
 
         if ($environment === 'testing') {
             $this->seedMinimalTestData();
+        } elseif ($environment === 'production') {
+            $this->seedProductionData();
         } else {
-            // In production and development, run the same seeders
             $this->seedDevelopmentData();
         }
     }
 
-    private function seedStructuralData(): void
+    private function seedProductionData(): void
     {
-        $this->call([
-            RoleSeeder::class,
-            // KarmaLevelSeeder::class, // Moved to migration: 2025_10_25_213108_seed_karma_levels_data.php
-            // AchievementsSeeder::class, // Moved to migration: 2025_10_25_210429_seed_achievements_data.php
-        ]);
-
-        if (! User::where('email', env('ADMIN_EMAIL', 'admin@example.com'))->exists()) {
-            $user = User::create([
-                'username' => env('ADMIN_USERNAME', 'admin'),
-                'email' => env('ADMIN_EMAIL', 'admin@example.com'),
-                'password' => Hash::make(env('ADMIN_PASSWORD', 'changeme123')),
-                'email_verified_at' => now(),
-                'karma_points' => 5000,
-            ]);
-            $adminRole = Role::where('slug', 'admin')->first();
-            if ($adminRole) {
-                $user->roles()->attach($adminRole);
-            }
-        }
-
-        $this->command->info('Structural data loaded successfully.');
+        $this->command->info('Production mode: structural data is loaded via migrations.');
+        $this->command->info('To seed test data, run: SEED_DEV_DATA=true php artisan db:seed');
     }
 
     private function seedMinimalTestData(): void
     {
-        $this->seedStructuralData();
-
         User::factory()->create([
             'username' => 'test-user',
             'email' => 'test@example.com',
@@ -77,11 +63,8 @@ final class DatabaseSeeder extends Seeder
 
     private function seedDevelopmentData(): void
     {
-        $this->seedStructuralData();
-
         $this->call([
             KarmaEventsSeeder::class,
-            AggregationSourcesSeeder::class,
             UserStreaksSeeder::class,
             TagCategoriesAndTagsSeeder::class,
         ]);
@@ -93,8 +76,6 @@ final class DatabaseSeeder extends Seeder
             CommentsSeeder::class,
             VotesSeeder::class,
         ]);
-
-        $this->createKarmaHistoryAndEvents();
 
         $this->command->info('Development data loaded successfully.');
     }
@@ -114,19 +95,5 @@ final class DatabaseSeeder extends Seeder
         }
 
         $this->command->info('Development users created successfully.');
-    }
-
-    private function createKarmaHistoryAndEvents(): void
-    {
-        User::all()->each(function ($user): void {
-            KarmaHistory::factory()
-                ->count(rand(5, 15))
-                ->create(['user_id' => $user->id]);
-        });
-
-        KarmaEvent::factory()->active()->create();
-        KarmaEvent::factory()->upcoming()->count(2)->create();
-
-        $this->command->info('Karma history and additional events created successfully.');
     }
 }

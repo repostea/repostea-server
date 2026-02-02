@@ -352,7 +352,7 @@ final class MbinOAuthService
      */
     private function getRedirectUri(): string
     {
-        return config('app.frontend_url', config('app.url')) . '/auth/mbin/callback';
+        return config('app.client_url', config('app.url')) . '/auth/mbin/callback';
     }
 
     /**

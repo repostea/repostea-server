@@ -77,10 +77,12 @@ return [
     |
     */
 
-    'client_url' => env('CLIENT_URL', 'http://localhost:3000'),
-    'server_url' => env('SERVER_URL', 'http://localhost:8000'),
-    'server_api_url' => env('SERVER_API_URL', 'http://localhost:8000/api'),
-    'production_url' => env('PRODUCTION_URL', null),  // Used in staging banner to link to production
+    // Frontend/Client URL - where the Nuxt app lives
+    // Supports both CLIENT_URL (preferred) and FRONTEND_URL (legacy) for backwards compatibility
+    'client_url' => env('CLIENT_URL', env('FRONTEND_URL', 'http://localhost:3000')),
+
+    // Production URL - used in staging banner to link to production
+    'production_url' => env('PRODUCTION_URL', null),
 
     /*
     |--------------------------------------------------------------------------

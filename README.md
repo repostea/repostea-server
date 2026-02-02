@@ -30,7 +30,7 @@ Repostea is a complete platform for building community-driven content aggregatio
 | Backend | Laravel 12, PHP 8.2+ |
 | Frontend | [Nuxt 3](https://github.com/repostea/client), Vue 3, TypeScript |
 | Database | MySQL 8.0+ / MariaDB 10.6+ |
-| Cache | Redis 7+ (optional, recommended) |
+| Cache/Queue | Redis 7+ |
 | WebSocket | Laravel Reverb |
 | Auth | Laravel Sanctum |
 
@@ -42,7 +42,7 @@ Repostea is a complete platform for building community-driven content aggregatio
 - Composer 2.x
 - Node.js 18+ and pnpm
 - MySQL 8.0+ or MariaDB 10.6+
-- Redis 7+ (optional but recommended)
+- Redis 7+
 
 ### 1. Clone repositories
 

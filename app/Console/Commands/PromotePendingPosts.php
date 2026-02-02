@@ -31,14 +31,6 @@ final class PromotePendingPosts extends Command
         $maxPosts = (int) config('posts.max_frontpage_posts', 24);
         $minVotes = (int) config('posts.frontpage_min_votes', 2);
         $maxAgeHours = (int) config('posts.frontpage_max_age_hours', 48);
-        $promotionChance = (int) config('posts.frontpage_promotion_chance', 50);
-
-        // Random chance to skip this execution (makes timing more organic)
-        if (mt_rand(1, 100) > $promotionChance) {
-            $this->info("Skipped this execution (random chance: {$promotionChance}%)");
-
-            return Command::SUCCESS;
-        }
 
         // Count posts currently on frontpage (in the last 24 hours)
         $frontpageCount = Post::whereNotNull('frontpage_at')

@@ -8,10 +8,10 @@
     <title>@yield('title', 'Admin Panel') - {{ config('site.name') }}</title>
 
     <!-- Favicons -->
-    <link rel="icon" type="image/png" href="{{ asset('favicon-96x96.png') }}" sizes="96x96">
-    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset(config('site.favicon_96', 'favicon-96x96.png')) }}" sizes="96x96">
+    <link rel="icon" type="image/svg+xml" href="{{ asset(config('site.logo', '/favicon.svg')) }}">
+    <link rel="shortcut icon" href="{{ asset(config('site.favicon', '/favicon.ico')) }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset(config('site.apple_touch_icon', 'apple-touch-icon.png')) }}">
     <meta name="apple-mobile-web-app-title" content="{{ config('site.name') }}">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -924,7 +924,7 @@
         <div class="sidebar md:w-64 bg-gray-900 text-white flex flex-col h-screen md:sticky top-0" id="sidebar">
             <div class="p-4 flex-shrink-0">
                 <h1 class="text-2xl font-bold flex items-center gap-3">
-                    <img src="{{ asset('favicon-96x96.png') }}" alt="{{ config('site.name') }}" class="w-10 h-10 rounded-lg shadow-md">
+                    <img src="{{ asset(config('site.favicon_96', 'favicon-96x96.png')) }}" alt="{{ config('site.name') }}" class="w-10 h-10 rounded-lg shadow-md">
                     <span>Admin Panel</span>
                 </h1>
                 <p class="text-sm text-gray-400 mt-1">{{ config('site.name') }} Moderation</p>

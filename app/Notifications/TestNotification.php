@@ -26,7 +26,7 @@ final class TestNotification extends Notification
     {
         $this->title = $title ?? __('notifications.test.title');
         $this->body = $body ?? __('notifications.test.body');
-        $this->actionUrl = $actionUrl ?? config('app.frontend_url');
+        $this->actionUrl = $actionUrl ?? config('app.client_url');
     }
 
     /**

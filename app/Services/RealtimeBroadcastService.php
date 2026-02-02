@@ -68,7 +68,7 @@ final class RealtimeBroadcastService
      */
     public function queueVoteChange(Post $post, int $votesDelta): void
     {
-        $newVotes = $post->votes;
+        $newVotes = $post->votes_count;
         $channels = $this->getChannelsForPost($post);
 
         $this->queueUpdate($post->id, ['votes' => $newVotes], $channels);
@@ -79,7 +79,7 @@ final class RealtimeBroadcastService
      */
     public function queueCommentChange(Post $post, int $commentsDelta): void
     {
-        $newCount = $post->comments_count;
+        $newCount = $post->comment_count;
         $channels = $this->getChannelsForPost($post);
 
         $this->queueUpdate($post->id, ['comments_count' => $newCount], $channels);

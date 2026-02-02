@@ -19,27 +19,26 @@ final class PostsSeeder extends Seeder
         $users = User::all();
 
         if ($users->isEmpty()) {
-            $this->command->info('No hay usuarios disponibles para crear posts. Creando un usuario administrador...');
+            $this->command->info('No users available to create posts. Creating an admin user...');
 
             $admin = User::factory()->create([
                 'name' => 'Admin',
                 'email' => env('ADMIN_EMAIL', 'admin@example.com'),
                 'password' => bcrypt(env('ADMIN_PASSWORD', 'changeme123')),
                 'karma_points' => 5000,
-                'locale' => 'es',
+                'locale' => 'en',
                 'email_verified_at' => now(),
             ]);
 
             $users = collect([$admin]);
         }
 
-        $this->command->info('Creando posts de ejemplo...');
+        $this->command->info('Creating sample posts...');
         $examplePosts = $this->getExamplePosts();
 
         foreach ($examplePosts as $postData) {
             $user = $users->random();
 
-            // Set content_type based on type
             if (! isset($postData['content_type'])) {
                 $postData['content_type'] = ($postData['type'] === 'article') ? 'text' : 'link';
             }
@@ -47,12 +46,12 @@ final class PostsSeeder extends Seeder
             $post = Post::create(array_merge($postData, [
                 'user_id' => $user->id,
                 'views' => rand(5, 500),
-                'language_code' => 'es',
+                'language_code' => 'en',
                 'status' => 'published',
                 'votes_count' => 0,
                 'comment_count' => 0,
             ]));
-            $this->command->info("Post creado: {$post->title}");
+            $this->command->info("Post created: {$post->title}");
         }
 
         $users->each(function ($user): void {
@@ -75,12 +74,12 @@ final class PostsSeeder extends Seeder
                     'votes_count' => 0,
                     'comment_count' => 0,
                     'views' => rand(5, 1000),
-                    'language_code' => 'es',
+                    'language_code' => 'en',
                 ]);
 
                 $this->assignRandomTags($post);
 
-                $this->command->info("Post aleatorio creado: {$post->title}");
+                $this->command->info("Random post created: {$post->title}");
             }
         });
     }
@@ -93,44 +92,44 @@ final class PostsSeeder extends Seeder
 
     private function getExamplePosts(): array
     {
-        $disclaimer = "[Este contenido es solo un ejemplo. Será eliminado cuando el desarrollo del sitio finalice y pasemos a producción.]\n\n";
+        $disclaimer = "[This content is just an example. It will be removed when the site development is complete and we move to production.]\n\n";
 
         return [
             [
-                'title' => 'Bienvenidos a Renegados: La nueva plataforma de contenido en español',
-                'content' => $disclaimer . "Nos complace presentar Renegados, una plataforma diseñada para compartir, descubrir y discutir contenido relevante en español...\n\nEn Renegados valoramos la calidad sobre la cantidad...",
+                'title' => 'Welcome to Repostea: The new content platform',
+                'content' => $disclaimer . "We are pleased to introduce Repostea, a platform designed to share, discover, and discuss relevant content...\n\nAt Repostea we value quality over quantity...",
                 'type' => 'article',
                 'is_original' => true,
             ],
             [
-                'title' => 'Guía para principiantes: Cómo acumular karma en Renegados',
-                'content' => $disclaimer . "¿Eres nuevo en Renegados? ¡Aprende cómo funciona nuestro sistema de karma!\n\n1. **Publicaciones de calidad**...",
+                'title' => 'Beginner\'s Guide: How to accumulate karma on Repostea',
+                'content' => $disclaimer . "Are you new to Repostea? Learn how our karma system works!\n\n1. **Quality posts**...",
                 'type' => 'article',
                 'is_original' => true,
             ],
             [
-                'title' => 'La inteligencia artificial revoluciona el desarrollo de software',
-                'content' => $disclaimer . 'La integración de la inteligencia artificial en el desarrollo de software está transformando la forma en que programamos...',
+                'title' => 'Artificial intelligence revolutionizes software development',
+                'content' => $disclaimer . 'The integration of artificial intelligence in software development is transforming the way we code...',
                 'type' => 'article',
                 'is_original' => true,
             ],
             [
-                'title' => 'El James Webb descubre atmósfera en exoplaneta potencialmente habitable',
-                'url' => 'https://www.example.com/james-webb-exoplaneta',
-                'content' => $disclaimer . 'Científicos de la NASA han anunciado un importante descubrimiento gracias al telescopio espacial James Webb.',
+                'title' => 'James Webb discovers atmosphere on potentially habitable exoplanet',
+                'url' => 'https://www.example.com/james-webb-exoplanet',
+                'content' => $disclaimer . 'NASA scientists have announced an important discovery thanks to the James Webb Space Telescope.',
                 'type' => 'link',
                 'is_original' => false,
             ],
             [
-                'title' => 'Tutorial: Crea tu primera aplicación web con Laravel 10',
+                'title' => 'Tutorial: Create your first web application with Laravel 10',
                 'url' => 'https://www.example.com/tutorial-laravel',
-                'content' => $disclaimer . 'En este tutorial aprenderás a crear una aplicación completa utilizando el framework Laravel 10.',
+                'content' => $disclaimer . 'In this tutorial you will learn how to create a complete application using the Laravel 10 framework.',
                 'type' => 'link',
                 'is_original' => false,
             ],
             [
-                'title' => 'Los mejores libros de ciencia ficción de la última década',
-                'content' => $disclaimer . 'La última década ha sido extraordinaria para la ciencia ficción literaria. Aquí te presento mi lista personal de los mejores libros...',
+                'title' => 'The best science fiction books of the last decade',
+                'content' => $disclaimer . 'The last decade has been extraordinary for literary science fiction. Here is my personal list of the best books...',
                 'type' => 'article',
                 'is_original' => true,
             ],
@@ -138,34 +137,34 @@ final class PostsSeeder extends Seeder
     }
 
     /**
-     * Generar un título aleatorio para un post.
+     * Generate a random title for a post.
      */
     private function generateTitle(string $type): string
     {
         $articleTitles = [
-            'Las 10 tendencias tecnológicas que dominarán el próximo año',
-            'Cómo mejorar tu productividad con técnicas de gestión del tiempo',
-            'Análisis: El impacto de la inteligencia artificial en nuestra sociedad',
-            'Guía completa para aprender programación desde cero',
-            'Los mejores destinos para viajar en 2025',
-            'La importancia de la educación financiera en tiempos de crisis',
-            'Reseña: El último libro de Gabriel García Márquez',
-            'La revolución sostenible: Cómo reducir tu huella ecológica',
-            'El futuro del trabajo: Tendencias y predicciones',
-            'Recetas saludables para una dieta equilibrada',
+            'The 10 technology trends that will dominate next year',
+            'How to improve your productivity with time management techniques',
+            'Analysis: The impact of artificial intelligence on our society',
+            'Complete guide to learning programming from scratch',
+            'The best travel destinations for 2025',
+            'The importance of financial education in times of crisis',
+            'Review: The latest bestselling novel everyone is talking about',
+            'The sustainable revolution: How to reduce your ecological footprint',
+            'The future of work: Trends and predictions',
+            'Healthy recipes for a balanced diet',
         ];
 
         $linkTitles = [
-            'Científicos descubren un nuevo método para tratar el cáncer',
-            'Apple presenta su nuevo dispositivo revolucionario',
-            'El cambio climático alcanza un punto de no retorno, según estudio',
-            'Nuevas regulaciones tecnológicas entrarán en vigor el próximo mes',
-            'Récord histórico en la bolsa tras anuncio económico',
-            'Filtradas las especificaciones del próximo iPhone',
-            'La NASA anuncia misión tripulada a Marte para 2030',
-            'Gran descubrimiento arqueológico revela antigua civilización',
-            'Estudio revela beneficios inesperados del ejercicio moderado',
-            'El gobierno aprueba nueva ley de protección de datos',
+            'Scientists discover a new method to treat cancer',
+            'Apple unveils its new revolutionary device',
+            'Climate change reaches a tipping point, according to study',
+            'New technology regulations will come into effect next month',
+            'Historic record on the stock market after economic announcement',
+            'Leaked specifications for the next iPhone',
+            'NASA announces crewed mission to Mars for 2030',
+            'Major archaeological discovery reveals ancient civilization',
+            'Study reveals unexpected benefits of moderate exercise',
+            'Government approves new data protection law',
         ];
 
         $titles = ($type === 'article') ? $articleTitles : $linkTitles;
@@ -174,7 +173,7 @@ final class PostsSeeder extends Seeder
     }
 
     /**
-     * Generar contenido aleatorio para un post.
+     * Generate random content for a post.
      */
     private function generateContent(string $type): string
     {
@@ -197,7 +196,7 @@ final class PostsSeeder extends Seeder
 
             return trim($content);
         }
-        // For links, just a short summary
+
         $sentences = rand(1, 3);
         $content = '';
 
@@ -212,23 +211,23 @@ final class PostsSeeder extends Seeder
     }
 
     /**
-     * Generar palabras aleatorias.
+     * Generate random words.
      */
     private function generateRandomWords(int $count): string
     {
         $words = [
-            'tecnología', 'desarrollo', 'innovación', 'ciencia', 'investigación',
-            'economía', 'sociedad', 'futuro', 'análisis', 'estudio', 'tiempo',
-            'programación', 'inteligencia', 'artificial', 'datos', 'seguridad',
-            'aplicación', 'sistema', 'usuario', 'diseño', 'proyecto', 'empresa',
-            'industria', 'cambio', 'proceso', 'producto', 'servicio', 'cliente',
-            'mercado', 'negocio', 'estrategia', 'crecimiento', 'inversión', 'éxito',
-            'global', 'digital', 'moderno', 'eficiente', 'sostenible', 'innovador',
-            'creativo', 'profesional', 'experto', 'avanzado', 'importante', 'esencial',
-            'fundamental', 'crítico', 'necesario', 'posible', 'probable', 'potencial',
-            'actual', 'reciente', 'nuevo', 'último', 'mejor', 'bueno', 'gran', 'alto',
-            'los', 'las', 'una', 'unos', 'para', 'con', 'por', 'entre', 'sobre', 'desde',
-            'hasta', 'según', 'como', 'cuando', 'donde', 'porque', 'aunque', 'si', 'pero',
+            'technology', 'development', 'innovation', 'science', 'research',
+            'economy', 'society', 'future', 'analysis', 'study', 'time',
+            'programming', 'intelligence', 'artificial', 'data', 'security',
+            'application', 'system', 'user', 'design', 'project', 'company',
+            'industry', 'change', 'process', 'product', 'service', 'client',
+            'market', 'business', 'strategy', 'growth', 'investment', 'success',
+            'global', 'digital', 'modern', 'efficient', 'sustainable', 'innovative',
+            'creative', 'professional', 'expert', 'advanced', 'important', 'essential',
+            'fundamental', 'critical', 'necessary', 'possible', 'probable', 'potential',
+            'current', 'recent', 'new', 'latest', 'best', 'good', 'great', 'high',
+            'the', 'a', 'an', 'some', 'for', 'with', 'by', 'between', 'about', 'from',
+            'to', 'according', 'as', 'when', 'where', 'because', 'although', 'if', 'but',
         ];
 
         $result = [];
@@ -240,18 +239,18 @@ final class PostsSeeder extends Seeder
     }
 
     /**
-     * Generar una URL de ejemplo.
+     * Generate an example URL.
      */
     private function generateUrl(): string
     {
         $domains = [
-            'ejemplo.com', 'noticias.es', 'tecnologia.info', 'ciencia.org',
-            'innovacion.net', 'economia.com', 'cultura.es', 'actualidad.info',
+            'example.com', 'news.org', 'technology.info', 'science.org',
+            'innovation.net', 'economy.com', 'culture.org', 'current-affairs.info',
         ];
 
         $paths = [
-            'articulo', 'noticia', 'analisis', 'estudio', 'reporte', 'entrevista',
-            'opinion', 'resumen', 'guia', 'tutorial', 'investigacion', 'descubrimiento',
+            'article', 'news', 'analysis', 'study', 'report', 'interview',
+            'opinion', 'summary', 'guide', 'tutorial', 'research', 'discovery',
         ];
 
         $domain = $domains[array_rand($domains)];
@@ -262,7 +261,7 @@ final class PostsSeeder extends Seeder
     }
 
     /**
-     * Generar una URL de imagen de thumbnail.
+     * Generate a thumbnail image URL.
      */
     private function generateThumbnailUrl(): string
     {

@@ -85,11 +85,12 @@
                         <p class="text-sm text-red-600">Error: {{ $stats['main_database']['error'] }}</p>
                     @endif
                     <button
+                        id="backup-main-btn"
                         onclick="createBackup('main')"
-                        class="mt-3 inline-flex items-center px-3 py-1.5 text-sm text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                        class="mt-3 inline-flex items-center px-3 py-1.5 text-sm text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <i class="fas fa-download mr-2"></i>
-                        Backup Main DB
+                        <i id="backup-main-icon" class="fas fa-download mr-2"></i>
+                        <span id="backup-main-text">Backup Main DB</span>
                     </button>
                 </div>
             </div>
@@ -111,11 +112,12 @@
                         <p class="text-sm text-red-600">Error: {{ $stats['media_database']['error'] }}</p>
                     @endif
                     <button
+                        id="backup-media-btn"
                         onclick="createBackup('media')"
-                        class="mt-3 inline-flex items-center px-3 py-1.5 text-sm text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                        class="mt-3 inline-flex items-center px-3 py-1.5 text-sm text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <i class="fas fa-download mr-2"></i>
-                        Backup Media DB
+                        <i id="backup-media-icon" class="fas fa-download mr-2"></i>
+                        <span id="backup-media-text">Backup Media DB</span>
                     </button>
                 </div>
             </div>
@@ -403,6 +405,29 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const buttonConfig = {
+        'both': { btn: 'backup-btn', icon: 'backup-icon', text: 'backup-text', original: 'Backup Both Databases', originalIcon: 'fa-cloud-download-alt' },
+        'main': { btn: 'backup-main-btn', icon: 'backup-main-icon', text: 'backup-main-text', original: 'Backup Main DB', originalIcon: 'fa-download' },
+        'media': { btn: 'backup-media-btn', icon: 'backup-media-icon', text: 'backup-media-text', original: 'Backup Media DB', originalIcon: 'fa-download' }
+    };
+
+    function setButtonLoading(type, loading) {
+        const config = buttonConfig[type];
+        const btn = document.getElementById(config.btn);
+        const icon = document.getElementById(config.icon);
+        const text = document.getElementById(config.text);
+
+        if (loading) {
+            btn.disabled = true;
+            icon.className = 'fas fa-spinner fa-spin mr-2';
+            text.textContent = 'Creating backup...';
+        } else {
+            btn.disabled = false;
+            icon.className = `fas ${config.originalIcon} mr-2`;
+            text.textContent = config.original;
+        }
+    }
+
     window.createBackup = async function(type = 'both') {
         const successDiv = document.getElementById('backup-success');
         const errorDiv = document.getElementById('backup-error');
@@ -410,6 +435,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide previous messages
         successDiv.classList.add('hidden');
         errorDiv.classList.add('hidden');
+
+        // Show loading state
+        setButtonLoading(type, true);
 
         try {
             const endpoint = type === 'both'
@@ -463,6 +491,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error creating backup:', err);
             document.getElementById('backup-error-message').textContent = err.message;
             errorDiv.classList.remove('hidden');
+        } finally {
+            // Reset button state
+            setButtonLoading(type, false);
         }
     };
 });

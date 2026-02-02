@@ -9,6 +9,17 @@ until php -r "new PDO('mysql:host=' . getenv('DB_HOST') . ';port=' . getenv('DB_
 done
 echo "MySQL is ready!"
 
+# Update .env with Docker environment variables
+echo "Updating .env with Docker config..."
+sed -i "s|^CACHE_STORE=.*|CACHE_STORE=${CACHE_STORE:-redis}|" .env
+sed -i "s|^SESSION_DRIVER=.*|SESSION_DRIVER=${SESSION_DRIVER:-redis}|" .env
+sed -i "s|^QUEUE_CONNECTION=.*|QUEUE_CONNECTION=${QUEUE_CONNECTION:-redis}|" .env
+sed -i "s|^REDIS_HOST=.*|REDIS_HOST=${REDIS_HOST:-redis}|" .env
+sed -i "s|^DB_HOST=.*|DB_HOST=${DB_HOST:-mysql}|" .env
+sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${DB_DATABASE:-repostea}|" .env
+sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${DB_USERNAME:-repostea}|" .env
+sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD:-repostea123}|" .env
+
 # Generate key if not set
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
     echo "Generating application key..."

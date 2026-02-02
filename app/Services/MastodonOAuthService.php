@@ -299,7 +299,7 @@ final class MastodonOAuthService
      */
     private function getRedirectUri(): string
     {
-        return config('app.frontend_url', config('app.url')) . '/auth/mastodon/callback';
+        return config('app.client_url', config('app.url')) . '/auth/mastodon/callback';
     }
 
     /**

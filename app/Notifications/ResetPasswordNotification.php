@@ -106,7 +106,7 @@ final class ResetPasswordNotification extends Notification
 
         $locale = $notifiable->locale ?? 'es';
 
-        return config('app.frontend_url') . "/{$locale}/auth/reset-password/" . $this->token . '?email=' . urlencode($notifiable->getEmailForPasswordReset());
+        return config('app.client_url') . "/{$locale}/auth/reset-password/" . $this->token . '?email=' . urlencode($notifiable->getEmailForPasswordReset());
     }
 
     /**

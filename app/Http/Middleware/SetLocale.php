@@ -19,12 +19,12 @@ final class SetLocale
     {
         $locale = $request->route('locale');
         $availableLanguages = config('languages.available');
+        $activeLanguages = config('languages.active_languages', ['es']);
 
         if ($locale !== null
             && is_array($availableLanguages)
             && array_key_exists($locale, $availableLanguages)
-            && isset($availableLanguages[$locale]['active'])
-            && $availableLanguages[$locale]['active'] === true
+            && in_array($locale, $activeLanguages, true)
         ) {
             App::setLocale($locale);
             Session::put('locale', $locale);

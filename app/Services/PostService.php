@@ -722,100 +722,156 @@ final class PostService
 
     protected function applyFilters($query, array $filters = []): void
     {
-        // Exclude posts from deleted users
+        $this->applyDeletedUsersFilter($query);
+        $this->applyNsfwFilter($query);
+        $this->applyStatusFilter($query, $filters);
+        $this->applyUserFilter($query, $filters);
+        $this->applySearchFilter($query, $filters);
+        $this->applyFeaturedFilter($query, $filters);
+        $this->applyContentTypeFilters($query, $filters);
+        $this->applyLanguageFilter($query, $filters);
+        $this->applySourceFilter($query, $filters);
+        $this->applyTimeIntervalFilter($query, $filters);
+        $this->applySectionFilter($query, $filters);
+    }
+
+    /**
+     * Exclude posts from deleted users.
+     */
+    protected function applyDeletedUsersFilter($query): void
+    {
         $query->whereHas('user', function ($q): void {
             $q->whereNull('deleted_at');
         });
+    }
 
-        // Filter NSFW content based on user preferences
-        if (Auth::check()) {
-            $userPreference = Auth::user()->preferences ?? null;
-            if ($userPreference && $userPreference->hide_nsfw) {
-                $query->where('is_nsfw', false);
-            }
+    /**
+     * Filter NSFW content based on user preferences.
+     */
+    protected function applyNsfwFilter($query): void
+    {
+        if (! Auth::check()) {
+            return;
         }
 
-        // Only show published posts in public listings by default
-        // Show all statuses only when viewing own profile
+        $userPreference = Auth::user()->preferences ?? null;
+        if ($userPreference && $userPreference->hide_nsfw) {
+            $query->where('is_nsfw', false);
+        }
+    }
+
+    /**
+     * Apply status filter - only show published posts in public listings.
+     * On own profile, show all posts (published, draft, hidden).
+     */
+    protected function applyStatusFilter($query, array $filters): void
+    {
         $showHidden = isset($filters['show_hidden']) && $filters['show_hidden'];
-        $isOwnProfile = isset($filters['user_id']) && Auth::check() && (int) $filters['user_id'] === Auth::id();
-
-        if (! $showHidden) {
-            if ($isOwnProfile) {
-                // On own profile, show all posts (published, draft, hidden) - they will be marked in the frontend
-                // No filter needed
-            } else {
-                // On all other listings, only show published posts
-                $query->where('status', Post::STATUS_PUBLISHED);
-            }
+        if ($showHidden) {
+            return;
         }
 
+        $isOwnProfile = isset($filters['user_id'])
+            && Auth::check()
+            && (int) $filters['user_id'] === Auth::id();
+
+        if (! $isOwnProfile) {
+            $query->where('status', Post::STATUS_PUBLISHED);
+        }
+    }
+
+    /**
+     * Filter by user ID.
+     */
+    protected function applyUserFilter($query, array $filters): void
+    {
         if (isset($filters['user_id'])) {
             $query->where('user_id', $filters['user_id']);
         }
+    }
 
-        if (isset($filters['search'])) {
-            $searchTerm = $filters['search'];
-            // Convert string "true"/"false" to boolean
-            $searchInComments = filter_var($filters['search_in_comments'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    /**
+     * Apply search filter across title, content, tags, and optionally comments.
+     */
+    protected function applySearchFilter($query, array $filters): void
+    {
+        if (! isset($filters['search'])) {
+            return;
+        }
 
-            // Split search into words for flexible matching (like Google)
-            $searchWords = array_filter(explode(' ', $searchTerm), fn ($word) => strlen(trim($word)) > 0);
+        $searchTerm = $filters['search'];
+        $searchInComments = filter_var($filters['search_in_comments'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $searchWords = array_filter(explode(' ', $searchTerm), fn ($word) => strlen(trim($word)) > 0);
 
-            $query->where(static function ($q) use ($searchWords, $searchInComments): void {
-                foreach ($searchWords as $word) {
-                    $word = trim($word);
-                    if (strlen($word) === 0) {
-                        continue;
-                    }
-
-                    $q->where(function ($subQuery) use ($word, $searchInComments): void {
-                        // Search in title and content
-                        $subQuery->where('title', 'like', '%' . $word . '%')
-                            ->orWhere('content', 'like', '%' . $word . '%');
-
-                        // Search in tags
-                        $subQuery->orWhereHas('tags', function ($tagQuery) use ($word): void {
-                            $tagQuery->where('name_key', 'like', '%' . $word . '%')
-                                ->orWhere('slug', 'like', '%' . $word . '%');
-                        });
-
-                        // Search in comments if enabled
-                        if ($searchInComments) {
-                            $subQuery->orWhereHas('comments', function ($commentQuery) use ($word): void {
-                                $commentQuery->where('content', 'like', '%' . $word . '%');
-                            });
-                        }
-                    });
+        $query->where(static function ($q) use ($searchWords, $searchInComments): void {
+            foreach ($searchWords as $word) {
+                $word = trim($word);
+                if (strlen($word) === 0) {
+                    continue;
                 }
-            });
 
-            // Load matching comment for search results
-            if ($searchInComments) {
-                $query->with(['comments' => function ($commentQuery) use ($searchWords): void {
-                    foreach ($searchWords as $word) {
-                        $word = trim($word);
-                        if (strlen($word) > 0) {
+                $q->where(function ($subQuery) use ($word, $searchInComments): void {
+                    $subQuery->where('title', 'like', '%' . $word . '%')
+                        ->orWhere('content', 'like', '%' . $word . '%');
+
+                    $subQuery->orWhereHas('tags', function ($tagQuery) use ($word): void {
+                        $tagQuery->where('name_key', 'like', '%' . $word . '%')
+                            ->orWhere('slug', 'like', '%' . $word . '%');
+                    });
+
+                    if ($searchInComments) {
+                        $subQuery->orWhereHas('comments', function ($commentQuery) use ($word): void {
                             $commentQuery->where('content', 'like', '%' . $word . '%');
-                        }
+                        });
                     }
-                    $commentQuery->orderBy('created_at', 'asc')->limit(1);
-                }]);
+                });
             }
+        });
+
+        if ($searchInComments) {
+            $this->loadMatchingCommentsForSearch($query, $searchWords);
+        }
+    }
+
+    /**
+     * Load matching comments for search results.
+     */
+    protected function loadMatchingCommentsForSearch($query, array $searchWords): void
+    {
+        $query->with(['comments' => function ($commentQuery) use ($searchWords): void {
+            foreach ($searchWords as $word) {
+                $word = trim($word);
+                if (strlen($word) > 0) {
+                    $commentQuery->where('content', 'like', '%' . $word . '%');
+                }
+            }
+            $commentQuery->orderBy('created_at', 'asc')->limit(1);
+        }]);
+    }
+
+    /**
+     * Filter by featured/frontpage status.
+     */
+    protected function applyFeaturedFilter($query, array $filters): void
+    {
+        if (! isset($filters['is_featured']) || $filters['is_featured'] === '') {
+            return;
         }
 
-        // Filter by featured/frontpage status
-        if (isset($filters['is_featured']) && $filters['is_featured'] !== '') {
-            // Convert string "true"/"false" to boolean
-            $isFeatured = filter_var($filters['is_featured'], FILTER_VALIDATE_BOOLEAN);
+        $isFeatured = filter_var($filters['is_featured'], FILTER_VALIDATE_BOOLEAN);
 
-            if ($isFeatured) {
-                $query->whereNotNull('frontpage_at');
-            } else {
-                $query->whereNull('frontpage_at');
-            }
+        if ($isFeatured) {
+            $query->whereNotNull('frontpage_at');
+        } else {
+            $query->whereNull('frontpage_at');
         }
+    }
 
+    /**
+     * Filter by content type and media provider.
+     */
+    protected function applyContentTypeFilters($query, array $filters): void
+    {
         if (isset($filters['content_type'])) {
             $query->where('content_type', $filters['content_type']);
         }
@@ -823,45 +879,79 @@ final class PostService
         if (isset($filters['media_provider'])) {
             $query->where('media_provider', $filters['media_provider']);
         }
+    }
 
-        // Filter by languages
-        if (isset($filters['languages']) && ! empty($filters['languages'])) {
-            $languages = is_array($filters['languages']) ? $filters['languages'] : explode(',', $filters['languages']);
-            $languages = array_map('trim', $languages);
-            $query->whereIn('language_code', $languages);
+    /**
+     * Filter by language codes.
+     */
+    protected function applyLanguageFilter($query, array $filters): void
+    {
+        if (! isset($filters['languages']) || empty($filters['languages'])) {
+            return;
         }
 
-        // Filter by source (my-subs)
-        if (isset($filters['source']) && $filters['source'] === 'my-subs') {
-            if (Auth::check()) {
-                // Get user's subscribed sub IDs
-                $subscribedSubIds = Auth::user()->subscribedSubs()->pluck('subs.id');
+        $languages = is_array($filters['languages'])
+            ? $filters['languages']
+            : explode(',', $filters['languages']);
 
-                // Only show posts from subscribed subs
-                $query->whereIn('sub_id', $subscribedSubIds);
-            } else {
-                // If not authenticated, return no posts
-                $query->whereRaw('1 = 0');
-            }
+        $languages = array_map('trim', $languages);
+        $query->whereIn('language_code', $languages);
+    }
+
+    /**
+     * Filter by source (e.g., my-subs for subscribed communities).
+     */
+    protected function applySourceFilter($query, array $filters): void
+    {
+        if (! isset($filters['source']) || $filters['source'] !== 'my-subs') {
+            return;
         }
 
+        if (Auth::check()) {
+            $subscribedSubIds = Auth::user()->subscribedSubs()->pluck('subs.id');
+            $query->whereIn('sub_id', $subscribedSubIds);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+    }
+
+    /**
+     * Filter by time interval (e.g., posts from last 24 hours).
+     */
+    protected function applyTimeIntervalFilter($query, array $filters): void
+    {
         $sortBy = $filters['sort_by'] ?? 'created_at';
-        if (isset($filters['time_interval']) && $filters['time_interval'] > 0 && $sortBy !== 'lastActive') {
-            $interval = now()->subMinutes($filters['time_interval']);
-            $query->where('created_at', '>=', $interval);
+
+        if (! isset($filters['time_interval']) || $filters['time_interval'] <= 0) {
+            return;
         }
 
-        if (isset($filters['section'])) {
-            // Don't apply section filters when using source filters (like my-subs)
-            $hasSourceFilter = isset($filters['source']) && ! empty($filters['source']);
+        if ($sortBy === 'lastActive') {
+            return;
+        }
 
-            if (! $hasSourceFilter) {
-                if ($filters['section'] === 'frontpage') {
-                    $this->applyFrontpageFilter($query);
-                } elseif ($filters['section'] === 'pending') {
-                    $this->applyPendingFilter($query);
-                }
-            }
+        $interval = now()->subMinutes($filters['time_interval']);
+        $query->where('created_at', '>=', $interval);
+    }
+
+    /**
+     * Apply section filter (frontpage or pending).
+     */
+    protected function applySectionFilter($query, array $filters): void
+    {
+        if (! isset($filters['section'])) {
+            return;
+        }
+
+        $hasSourceFilter = isset($filters['source']) && ! empty($filters['source']);
+        if ($hasSourceFilter) {
+            return;
+        }
+
+        if ($filters['section'] === 'frontpage') {
+            $this->applyFrontpageFilter($query);
+        } elseif ($filters['section'] === 'pending') {
+            $this->applyPendingFilter($query);
         }
     }
 

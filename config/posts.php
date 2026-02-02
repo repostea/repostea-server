@@ -19,10 +19,6 @@ return [
     // After this time, posts cannot enter frontpage even with enough votes
     'frontpage_max_age_hours' => env('FRONTPAGE_MAX_AGE_HOURS', 48),
 
-    // Chance (%) to promote a post each cron execution (adds randomness to timing)
-    // 50 = ~10 min avg interval, 33 = ~15 min avg, 25 = ~20 min avg
-    'frontpage_promotion_chance' => env('FRONTPAGE_PROMOTION_CHANCE', 50),
-
     /*
     |--------------------------------------------------------------------------
     | Time-based Restrictions
