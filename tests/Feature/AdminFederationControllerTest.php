@@ -11,19 +11,15 @@ use App\Models\User;
 
 beforeEach(function (): void {
     // Create roles
-    Role::create([
-        'name' => 'admin',
-        'slug' => 'admin',
-        'display_name' => 'Administrator',
-        'description' => 'Administrator role for testing',
-    ]);
+    Role::firstOrCreate(
+        ['slug' => 'admin'],
+        ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role for testing'],
+    );
 
-    Role::create([
-        'name' => 'moderator',
-        'slug' => 'moderator',
-        'display_name' => 'Moderator',
-        'description' => 'Moderator role for testing',
-    ]);
+    Role::firstOrCreate(
+        ['slug' => 'moderator'],
+        ['name' => 'moderator', 'display_name' => 'Moderator', 'description' => 'Moderator role for testing'],
+    );
 
     $this->admin = User::factory()->admin()->create();
     $this->user = User::factory()->create();

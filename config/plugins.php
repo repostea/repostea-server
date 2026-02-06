@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-return [
+$baseConfig = [
     /*
     |--------------------------------------------------------------------------
     | Enabled Plugins
@@ -24,5 +24,16 @@ return [
     | Add configuration for individual plugins below.
     | Access in plugins via: $this->config('key') or config('plugins.plugin-id.key')
     |
+    | For instance-specific configurations, create a plugins.renegados.php file
+    | (or similar) that will be automatically merged with this base config.
+    |
     */
 ];
+
+// Load instance-specific plugin config if it exists
+$instanceConfig = __DIR__ . '/plugins.renegados.php';
+if (file_exists($instanceConfig)) {
+    $baseConfig = array_merge($baseConfig, require $instanceConfig);
+}
+
+return $baseConfig;

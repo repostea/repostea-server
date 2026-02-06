@@ -49,8 +49,8 @@ test('PostResource is_external_import is boolean', function (): void {
         'title' => 'External Post',
         'content' => 'Test content',
         'user_id' => $this->user->id,
-        'source' => 'reddit',
-        'source_url' => 'https://reddit.com/r/test',
+        'source' => 'meneame',
+        'source_url' => 'https://www.meneame.net/story/test',
     ]);
 
     $post->load('user');

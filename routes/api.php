@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AgoraController;
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiPasswordController;
+use App\Http\Controllers\Api\BlueskyAuthController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\CommentListController;
 use App\Http\Controllers\Api\EmailChangeController;
@@ -30,7 +31,6 @@ use App\Http\Controllers\Api\PreferencesController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\RankingsController;
 use App\Http\Controllers\Api\RealtimeController;
-use App\Http\Controllers\Api\RedditAuthController;
 use App\Http\Controllers\Api\RelationshipVoteController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SavedListController;
@@ -116,11 +116,9 @@ Route::prefix('v1')->group(static function (): void {
     Route::post('/auth/telegram/callback', [TelegramAuthController::class, 'callback'])
         ->middleware('throttle:10,1'); // 10 attempts per minute
 
-    // Reddit authentication
-    Route::get('/auth/reddit/status', [RedditAuthController::class, 'status']);
-    Route::post('/auth/reddit/redirect', [RedditAuthController::class, 'redirect'])
-        ->middleware('throttle:10,1');
-    Route::post('/auth/reddit/callback', [RedditAuthController::class, 'callback'])
+    // Bluesky authentication (API: status + exchange)
+    Route::get('/auth/bluesky/status', [BlueskyAuthController::class, 'status']);
+    Route::post('/auth/bluesky/exchange', [BlueskyAuthController::class, 'exchange'])
         ->middleware('throttle:10,1');
 
     // ActivityPub status (public)

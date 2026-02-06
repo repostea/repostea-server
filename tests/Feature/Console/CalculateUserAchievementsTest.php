@@ -295,10 +295,11 @@ final class CalculateUserAchievementsTest extends TestCase
     {
         // Arrange - create 150 users (more than chunk size of 100)
         User::factory()->count(150)->create();
+        $totalUsers = User::count();
 
         // Act
         $this->artisan('achievements:calculate --all')
-            ->expectsOutput('Processing 150 user(s)...')
+            ->expectsOutputToContain("Processing {$totalUsers} user(s)...")
             ->assertExitCode(0);
 
         // Assert - all users should have welcome achievement
@@ -306,7 +307,7 @@ final class CalculateUserAchievementsTest extends TestCase
             $query->where('slug', 'welcome');
         })->count();
 
-        $this->assertEquals(150, $usersWithWelcome);
+        $this->assertEquals($totalUsers, $usersWithWelcome);
     }
 
     public function test_recent_flag_defaults_to_one_hour(): void

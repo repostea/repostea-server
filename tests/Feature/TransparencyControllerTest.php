@@ -62,7 +62,7 @@ test('index returns statistics when they exist', function (): void {
         'reports_total' => 10,
         'reports_processed' => 8,
         'reports_pending' => 2,
-        'avg_response_hours' => 24.5,
+        'avg_response_hours' => 24,
         'content_removed' => 3,
         'warnings_issued' => 5,
         'users_suspended' => 1,
@@ -81,7 +81,7 @@ test('index returns statistics when they exist', function (): void {
     $response->assertJsonPath('data.moderation.reports.total', 10);
     $response->assertJsonPath('data.moderation.reports.processed', 8);
     $response->assertJsonPath('data.moderation.reports.pending', 2);
-    $response->assertJsonPath('data.moderation.avg_response_hours', 24.5);
+    $response->assertJsonPath('data.moderation.avg_response_hours', 24);
     $response->assertJsonPath('data.moderation.actions.removed', 3);
     $response->assertJsonPath('data.moderation.actions.warnings', 5);
     $response->assertJsonPath('data.moderation.actions.suspended', 1);
@@ -97,7 +97,7 @@ test('index includes calculated_at when statistics exist', function (): void {
         'reports_total' => 10,
         'reports_processed' => 8,
         'reports_pending' => 2,
-        'avg_response_hours' => 24.5,
+        'avg_response_hours' => 24,
         'content_removed' => 3,
         'warnings_issued' => 5,
         'users_suspended' => 1,
@@ -124,7 +124,7 @@ test('index formatea report_types correctamente', function (): void {
         'reports_total' => 10,
         'reports_processed' => 8,
         'reports_pending' => 2,
-        'avg_response_hours' => 24.5,
+        'avg_response_hours' => 24,
         'content_removed' => 3,
         'warnings_issued' => 5,
         'users_suspended' => 1,
@@ -152,7 +152,7 @@ test('index returns latest statistic when multiple exist', function (): void {
         'reports_total' => 5,
         'reports_processed' => 4,
         'reports_pending' => 1,
-        'avg_response_hours' => 12.0,
+        'avg_response_hours' => 12,
         'content_removed' => 1,
         'warnings_issued' => 2,
         'users_suspended' => 0,
@@ -168,7 +168,7 @@ test('index returns latest statistic when multiple exist', function (): void {
         'reports_total' => 10,
         'reports_processed' => 8,
         'reports_pending' => 2,
-        'avg_response_hours' => 24.5,
+        'avg_response_hours' => 24,
         'content_removed' => 3,
         'warnings_issued' => 5,
         'users_suspended' => 1,

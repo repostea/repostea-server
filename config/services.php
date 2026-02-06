@@ -45,6 +45,12 @@ return [
         'url' => env('API_URL', env('APP_URL') . '/api/v1'),
     ],
 
+    'bluesky' => [
+        'client_id' => null, // Auto-generated from client-metadata.json
+        'client_secret' => null,
+        'redirect' => 'bluesky.oauth.redirect', // Route name → /auth/bluesky/callback
+    ],
+
     'mbin' => [
         'url' => env('MBIN_URL'),
         'database' => [

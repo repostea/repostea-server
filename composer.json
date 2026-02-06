@@ -16,6 +16,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "league/commonmark": "^2.7",
+        "revolution/laravel-bluesky": "^1.1",
         "ryangjchandler/laravel-cloudflare-turnstile": "^2.0",
         "sentry/sentry-laravel": "^4.13",
         "spatie/laravel-feed": "^4.4"
@@ -104,18 +105,6 @@
         ],
         "dev:stop-docker": [
             "@php -r \"if (shell_exec('docker ps -q --filter name=repostea-server 2>/dev/null')) { echo 'Stopping Docker containers using ports 8000/3000...'.PHP_EOL; shell_exec('docker compose down 2>/dev/null'); }\""
-        ],
-        "deploy": [
-            "bash ../deploy.sh"
-        ],
-        "deploy:publish": [
-            "bash ../deploy.sh --publish-only"
-        ],
-        "deploy:server": [
-            "bash ../deploy.sh --server-only"
-        ],
-        "deploy:client": [
-            "bash ../deploy.sh --client-only"
         ],
         "repostea": [
             "bash ../deploy-repostea.sh"

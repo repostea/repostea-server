@@ -14,13 +14,8 @@ use function Pest\Laravel\actingAs;
 use function Pest\Laravel\postJson;
 
 beforeEach(function (): void {
-    // Create admin role first (required for admin() factory state)
-    Role::create([
-        'name' => 'admin',
-        'slug' => 'admin',
-        'display_name' => 'Administrator',
-        'description' => 'Administrator role for testing',
-    ]);
+    // Create admin role if it doesn't exist (required for admin() factory state)
+    Role::firstOrCreate(['slug' => 'admin'], ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role']);
 
     $this->admin = User::factory()->admin()->create();
     $this->user = User::factory()->create();

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\IpBlockController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\AdminWebController;
+use App\Http\Controllers\BlueskyWebAuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\ManifestoController;
@@ -44,6 +45,15 @@ Route::prefix('rss')->name('rss.')->group(static function (): void {
     Route::get('/published', [RssController::class, 'published'])->name('published');
     Route::get('/queued', [RssController::class, 'queued'])->name('queued');
 });
+
+// Bluesky OAuth Routes (web middleware for session-based DPoP/PKCE)
+// The callback route MUST be named 'bluesky.oauth.redirect' - the revolution/laravel-bluesky
+// package uses this name to generate redirect_uris in client-metadata.json
+Route::get('/auth/bluesky/redirect', [BlueskyWebAuthController::class, 'redirect'])
+    ->middleware('throttle:10,1');
+Route::get('/auth/bluesky/callback', [BlueskyWebAuthController::class, 'callback'])
+    ->middleware('throttle:10,1')
+    ->name('bluesky.oauth.redirect');
 
 // ActivityPub Federation Endpoints
 // Use multi-actor WebFinger (supports @user and !group)

@@ -24,7 +24,10 @@ final class AdminInvitationManagementTest extends TestCase
 
         // Create admin user
         $this->admin = User::factory()->create();
-        $adminRole = Role::factory()->create(['slug' => 'admin']);
+        $adminRole = Role::firstOrCreate(
+            ['slug' => 'admin'],
+            ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role'],
+        );
         $this->admin->roles()->attach($adminRole);
 
         // Create regular user

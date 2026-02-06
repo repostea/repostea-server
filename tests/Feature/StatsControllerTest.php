@@ -121,7 +121,8 @@ test('users calculates verification rate correctly', function (): void {
 });
 
 test('users returns top karma users', function (): void {
-    User::factory()->create(['username' => 'top_user', 'karma_points' => 1000]);
+    // Use very high karma to ensure top_user is first, even if other users exist
+    User::factory()->create(['username' => 'top_user', 'karma_points' => 999999]);
     User::factory()->create(['username' => 'mid_user', 'karma_points' => 500]);
     User::factory()->create(['username' => 'low_user', 'karma_points' => 100]);
 
@@ -132,7 +133,7 @@ test('users returns top karma users', function (): void {
 
     expect($topUsers)->toBeArray();
     expect($topUsers[0]['username'])->toBe('top_user');
-    expect($topUsers[0]['karma_points'])->toBe(1000);
+    expect($topUsers[0]['karma_points'])->toBe(999999);
 });
 
 test('engagement returns engagement statistics', function (): void {

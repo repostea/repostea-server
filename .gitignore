@@ -39,3 +39,4 @@ C\:\\*
 # Deploy scripts (kept in parent repo, not published)
 deploy-*.sh
 apache-reverb.conf
+config/plugins.renegados.php

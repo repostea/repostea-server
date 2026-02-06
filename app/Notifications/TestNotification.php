@@ -36,6 +36,11 @@ final class TestNotification extends Notification
      */
     public function via(object $notifiable): array
     {
+        // Only use database channel during tests to avoid WebPush extension requirements
+        if (app()->runningUnitTests()) {
+            return ['database'];
+        }
+
         return ['database', WebPushChannel::class];
     }
 

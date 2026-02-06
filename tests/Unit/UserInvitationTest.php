@@ -64,7 +64,10 @@ final class UserInvitationTest extends TestCase
             'karma_points' => 50,
         ]);
 
-        $adminRole = Role::factory()->create(['slug' => 'admin']);
+        $adminRole = Role::firstOrCreate(
+            ['slug' => 'admin'],
+            ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role'],
+        );
         $user->roles()->attach($adminRole);
 
         $this->assertEquals(PHP_INT_MAX, $user->getInvitationLimit());
@@ -77,7 +80,10 @@ final class UserInvitationTest extends TestCase
             'karma_points' => 50,
         ]);
 
-        $moderatorRole = Role::factory()->create(['slug' => 'moderator']);
+        $moderatorRole = Role::firstOrCreate(
+            ['slug' => 'moderator'],
+            ['name' => 'moderator', 'display_name' => 'Moderator', 'description' => 'Moderator role'],
+        );
         $user->roles()->attach($moderatorRole);
 
         $this->assertEquals(50, $user->getInvitationLimit());
@@ -90,8 +96,14 @@ final class UserInvitationTest extends TestCase
             'karma_points' => 50,
         ]);
 
-        $adminRole = Role::factory()->create(['slug' => 'admin']);
-        $moderatorRole = Role::factory()->create(['slug' => 'moderator']);
+        $adminRole = Role::firstOrCreate(
+            ['slug' => 'admin'],
+            ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role'],
+        );
+        $moderatorRole = Role::firstOrCreate(
+            ['slug' => 'moderator'],
+            ['name' => 'moderator', 'display_name' => 'Moderator', 'description' => 'Moderator role'],
+        );
         $user->roles()->attach([$adminRole->id, $moderatorRole->id]);
 
         $this->assertEquals(PHP_INT_MAX, $user->getInvitationLimit());
@@ -105,7 +117,10 @@ final class UserInvitationTest extends TestCase
             'invitation_limit' => 15,
         ]);
 
-        $adminRole = Role::factory()->create(['slug' => 'admin']);
+        $adminRole = Role::firstOrCreate(
+            ['slug' => 'admin'],
+            ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role'],
+        );
         $user->roles()->attach($adminRole);
 
         // Custom limit should override admin unlimited
@@ -186,7 +201,10 @@ final class UserInvitationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $adminRole = Role::factory()->create(['slug' => 'admin']);
+        $adminRole = Role::firstOrCreate(
+            ['slug' => 'admin'],
+            ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role'],
+        );
         $user->roles()->attach($adminRole);
 
         // Even with invitations created
@@ -270,7 +288,10 @@ final class UserInvitationTest extends TestCase
             'email_verified_at' => now(),
         ]);
 
-        $adminRole = Role::factory()->create(['slug' => 'admin']);
+        $adminRole = Role::firstOrCreate(
+            ['slug' => 'admin'],
+            ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role'],
+        );
         $user->roles()->attach($adminRole);
 
         // Even with many invitations

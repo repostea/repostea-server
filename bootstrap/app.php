@@ -61,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'activitypub/inbox',
             'activitypub/users/*/inbox',
             'activitypub/groups/*/inbox',
+            'auth/bluesky/callback',
             '__cypress__/*',
         ]);
 

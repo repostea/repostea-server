@@ -286,7 +286,7 @@ final class SubController extends Controller
                 $query->orderByDesc('score');
                 break;
             case 'top':
-                $query->orderByDesc('upvotes');
+                $query->orderByDesc('votes_count');
                 break;
             case 'new':
             default:

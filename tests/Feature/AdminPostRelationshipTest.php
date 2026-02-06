@@ -13,13 +13,8 @@ use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
 
 beforeEach(function (): void {
-    // Create admin role first
-    $adminRole = Role::create([
-        'name' => 'admin',
-        'slug' => 'admin',
-        'display_name' => 'Administrator',
-        'description' => 'Administrator role for testing',
-    ]);
+    // Create admin role if it doesn't exist
+    Role::firstOrCreate(['slug' => 'admin'], ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role']);
 
     $this->admin = User::factory()->admin()->create();
     $this->user = User::factory()->create();

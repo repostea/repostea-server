@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "28b5afc7aa4e58b29409616c3c243e73",
+    "content-hash": "1be633374bc841890f2f0f1bcad7af28",
     "packages": [
         {
             "name": "abraham/twitteroauth",
@@ -920,6 +920,69 @@
                 "source": "https://github.com/igorw/evenement/tree/v3.0.2"
             },
             "time": "2023-08-08T05:53:35+00:00"
+        },
+        {
+            "name": "firebase/php-jwt",
+            "version": "v6.11.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/firebase/php-jwt.git",
+                "reference": "d1e91ecf8c598d073d0995afa8cd5c75c6e19e66"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/firebase/php-jwt/zipball/d1e91ecf8c598d073d0995afa8cd5c75c6e19e66",
+                "reference": "d1e91ecf8c598d073d0995afa8cd5c75c6e19e66",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.0"
+            },
+            "require-dev": {
+                "guzzlehttp/guzzle": "^7.4",
+                "phpspec/prophecy-phpunit": "^2.0",
+                "phpunit/phpunit": "^9.5",
+                "psr/cache": "^2.0||^3.0",
+                "psr/http-client": "^1.0",
+                "psr/http-factory": "^1.0"
+            },
+            "suggest": {
+                "ext-sodium": "Support EdDSA (Ed25519) signatures",
+                "paragonie/sodium_compat": "Support EdDSA (Ed25519) signatures when libsodium is not present"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Firebase\\JWT\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "Neuman Vong",
+                    "email": "neuman+pear@twilio.com",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Anant Narayanan",
+                    "email": "anant@php.net",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A simple library to encode and decode JSON Web Tokens (JWT) in PHP. Should conform to the current spec.",
+            "homepage": "https://github.com/firebase/php-jwt",
+            "keywords": [
+                "jwt",
+                "php"
+            ],
+            "support": {
+                "issues": "https://github.com/firebase/php-jwt/issues",
+                "source": "https://github.com/firebase/php-jwt/tree/v6.11.1"
+            },
+            "time": "2025-04-09T20:32:01+00:00"
         },
         {
             "name": "fruitcake/php-cors",
@@ -2345,6 +2408,78 @@
             "time": "2025-11-21T20:52:36+00:00"
         },
         {
+            "name": "laravel/socialite",
+            "version": "v5.24.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laravel/socialite.git",
+                "reference": "5cea2eebf11ca4bc6c2f20495c82a70a9b3d1613"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laravel/socialite/zipball/5cea2eebf11ca4bc6c2f20495c82a70a9b3d1613",
+                "reference": "5cea2eebf11ca4bc6c2f20495c82a70a9b3d1613",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "firebase/php-jwt": "^6.4|^7.0",
+                "guzzlehttp/guzzle": "^6.0|^7.0",
+                "illuminate/contracts": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
+                "illuminate/http": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
+                "illuminate/support": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
+                "league/oauth1-client": "^1.11",
+                "php": "^7.2|^8.0",
+                "phpseclib/phpseclib": "^3.0"
+            },
+            "require-dev": {
+                "mockery/mockery": "^1.0",
+                "orchestra/testbench": "^4.18|^5.20|^6.47|^7.55|^8.36|^9.15|^10.8",
+                "phpstan/phpstan": "^1.12.23",
+                "phpunit/phpunit": "^8.0|^9.3|^10.4|^11.5|^12.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "Socialite": "Laravel\\Socialite\\Facades\\Socialite"
+                    },
+                    "providers": [
+                        "Laravel\\Socialite\\SocialiteServiceProvider"
+                    ]
+                },
+                "branch-alias": {
+                    "dev-master": "5.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Laravel\\Socialite\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Taylor Otwell",
+                    "email": "taylor@laravel.com"
+                }
+            ],
+            "description": "Laravel wrapper around OAuth 1 & OAuth 2 libraries.",
+            "homepage": "https://laravel.com",
+            "keywords": [
+                "laravel",
+                "oauth"
+            ],
+            "support": {
+                "issues": "https://github.com/laravel/socialite/issues",
+                "source": "https://github.com/laravel/socialite"
+            },
+            "time": "2026-01-10T16:07:28+00:00"
+        },
+        {
             "name": "laravel/tinker",
             "version": "v2.10.2",
             "source": {
@@ -2786,6 +2921,82 @@
                 }
             ],
             "time": "2024-09-21T08:32:55+00:00"
+        },
+        {
+            "name": "league/oauth1-client",
+            "version": "v1.11.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/thephpleague/oauth1-client.git",
+                "reference": "f9c94b088837eb1aae1ad7c4f23eb65cc6993055"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/thephpleague/oauth1-client/zipball/f9c94b088837eb1aae1ad7c4f23eb65cc6993055",
+                "reference": "f9c94b088837eb1aae1ad7c4f23eb65cc6993055",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "ext-openssl": "*",
+                "guzzlehttp/guzzle": "^6.0|^7.0",
+                "guzzlehttp/psr7": "^1.7|^2.0",
+                "php": ">=7.1||>=8.0"
+            },
+            "require-dev": {
+                "ext-simplexml": "*",
+                "friendsofphp/php-cs-fixer": "^2.17",
+                "mockery/mockery": "^1.3.3",
+                "phpstan/phpstan": "^0.12.42",
+                "phpunit/phpunit": "^7.5||9.5"
+            },
+            "suggest": {
+                "ext-simplexml": "For decoding XML-based responses."
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.0-dev",
+                    "dev-develop": "2.0-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "League\\OAuth1\\Client\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ben Corlett",
+                    "email": "bencorlett@me.com",
+                    "homepage": "http://www.webcomm.com.au",
+                    "role": "Developer"
+                }
+            ],
+            "description": "OAuth 1.0 Client Library",
+            "keywords": [
+                "Authentication",
+                "SSO",
+                "authorization",
+                "bitbucket",
+                "identity",
+                "idp",
+                "oauth",
+                "oauth1",
+                "single sign on",
+                "trello",
+                "tumblr",
+                "twitter"
+            ],
+            "support": {
+                "issues": "https://github.com/thephpleague/oauth1-client/issues",
+                "source": "https://github.com/thephpleague/oauth1-client/tree/v1.11.0"
+            },
+            "time": "2024-12-10T19:59:05+00:00"
         },
         {
             "name": "league/uri",
@@ -5460,6 +5671,142 @@
                 }
             ],
             "time": "2024-06-11T12:45:25+00:00"
+        },
+        {
+            "name": "revolution/atproto-lexicon-contracts",
+            "version": "1.0.86",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/invokable/atproto-lexicon-contracts.git",
+                "reference": "96058d81ccba880928e873112ce1499540cfcc0e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/invokable/atproto-lexicon-contracts/zipball/96058d81ccba880928e873112ce1499540cfcc0e",
+                "reference": "96058d81ccba880928e873112ce1499540cfcc0e",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "guzzlehttp/guzzle": "^7.9",
+                "laravel/pint": "^1.22"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Revolution\\AtProto\\Lexicon\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "kawax",
+                    "email": "kawaxbiz@gmail.com"
+                }
+            ],
+            "description": "Auto generated pure PHP interface and enum",
+            "keywords": [
+                "Lexicon",
+                "atproto",
+                "bluesky",
+                "contracts"
+            ],
+            "support": {
+                "source": "https://github.com/invokable/atproto-lexicon-contracts/tree/1.0.86"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/invokable",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-01-28T05:05:21+00:00"
+        },
+        {
+            "name": "revolution/laravel-bluesky",
+            "version": "1.1.7",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/invokable/laravel-bluesky.git",
+                "reference": "20724cbd1d53088a1dc72609e430665361ca0ae1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/invokable/laravel-bluesky/zipball/20724cbd1d53088a1dc72609e430665361ca0ae1",
+                "reference": "20724cbd1d53088a1dc72609e430665361ca0ae1",
+                "shasum": ""
+            },
+            "require": {
+                "firebase/php-jwt": "^6.10",
+                "guzzlehttp/guzzle": "^7.8",
+                "illuminate/support": "^11.30||^12.0",
+                "laravel/socialite": "^5.16",
+                "php": "^8.2",
+                "phpseclib/phpseclib": "^3.0",
+                "revolution/atproto-lexicon-contracts": "1.0.86",
+                "yocto/yoclib-multibase": "^1.2"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.22",
+                "orchestra/testbench": "^9.0||^10.0",
+                "revolt/event-loop": "^1.0",
+                "revolution/laravel-boost-copilot-cli": "^2.0",
+                "workerman/workerman": "^5.0"
+            },
+            "suggest": {
+                "ext-gmp": "*",
+                "ext-pcntl": "*",
+                "revolt/event-loop": "Required to use WebSocket.",
+                "workerman/workerman": "Required to use WebSocket."
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Revolution\\Bluesky\\Providers\\BlueskyServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Revolution\\Bluesky\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "kawax",
+                    "email": "kawaxbiz@gmail.com"
+                }
+            ],
+            "description": "Bluesky(AT Protocol) for Laravel",
+            "keywords": [
+                "atproto",
+                "bluesky",
+                "feed-generator",
+                "labeler",
+                "laravel",
+                "notifications",
+                "socialite"
+            ],
+            "support": {
+                "source": "https://github.com/invokable/laravel-bluesky/tree/1.1.7"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/invokable",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-01-28T05:15:42+00:00"
         },
         {
             "name": "ryangjchandler/laravel-cloudflare-turnstile",
@@ -9262,6 +9609,52 @@
                 }
             ],
             "time": "2025-12-18T14:27:35+00:00"
+        },
+        {
+            "name": "yocto/yoclib-multibase",
+            "version": "v1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/yocto/yoclib-multibase-php.git",
+                "reference": "c7171897bf61dbc4a4cc6bb3f2fd5c3e62298e13"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/yocto/yoclib-multibase-php/zipball/c7171897bf61dbc4a4cc6bb3f2fd5c3e62298e13",
+                "reference": "c7171897bf61dbc4a4cc6bb3f2fd5c3e62298e13",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": "^7.4||^8"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^7||^8||^9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "YOCLIB\\Multiformats\\Multibase\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0-or-later"
+            ],
+            "description": "This yocLibrary enables your project to encode and decode Multibases in PHP.",
+            "keywords": [
+                "composer",
+                "multibase",
+                "multiformats",
+                "php",
+                "yoclib",
+                "yocto"
+            ],
+            "support": {
+                "issues": "https://github.com/yocto/yoclib-multibase-php/issues",
+                "source": "https://github.com/yocto/yoclib-multibase-php/tree/v1.2.0"
+            },
+            "time": "2024-06-05T13:42:01+00:00"
         }
     ],
     "packages-dev": [
@@ -13410,5 +13803,5 @@
         "php": "^8.2"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }

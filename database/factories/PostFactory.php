@@ -93,9 +93,8 @@ final class PostFactory extends Factory
     public function importedFromExternal(): static
     {
         $externalSources = [
-            'lobsters' => ['name' => 'Lobsters', 'domain' => 'lobste.rs'],
+            'meneame' => ['name' => 'Menéame', 'domain' => 'meneame.net'],
             'hackernews' => ['name' => 'Hacker News', 'domain' => 'news.ycombinator.com'],
-            'reddit' => ['name' => 'Reddit', 'domain' => 'reddit.com'],
             'mediatize' => ['name' => 'Mediatize', 'domain' => 'mediatize.info'],
         ];
         $sourceName = array_rand($externalSources);

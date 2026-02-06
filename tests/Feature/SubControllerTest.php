@@ -435,7 +435,7 @@ test('posts endpoint supports sorting by top (upvotes)', function (): void {
         'content' => 'Top content',
         'user_id' => $this->user->id,
         'sub_id' => $sub->id,
-        'upvotes' => 50,
+        'votes_count' => 50,
     ]);
 
     $lowPost = Post::create([
@@ -443,7 +443,7 @@ test('posts endpoint supports sorting by top (upvotes)', function (): void {
         'content' => 'Low content',
         'user_id' => $this->user->id,
         'sub_id' => $sub->id,
-        'upvotes' => 5,
+        'votes_count' => 5,
     ]);
 
     $response = getJson("/api/v1/subs/{$sub->id}/posts?sort=top");

@@ -39,8 +39,6 @@ return [
         'source_not_implemented' => 'Iturria ez dago proxy-an inplementatuta.',
         'mediatize_fetch_error' => 'Errorea Mediatize-ko albisteak eskuratzean.',
         'mediatize_processing_error' => 'Errorea Mediatize-ko RSS jarioa prozesatzean.',
-        'reddit_fetch_error' => 'Errorea Reddit-eko albisteak eskuratzean.',
-        'reddit_processing_error' => 'Errorea Reddit-eko jarioa prozesatzean.',
         'techcrunch_fetch_error' => 'Errorea TechCrunch-eko albisteak eskuratzean.',
         'techcrunch_processing_error' => 'Errorea TechCrunch-eko RSS jarioa prozesatzean.',
         'import_error' => 'Errorea kanpoko edukia inportatzean.',

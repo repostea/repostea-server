@@ -47,8 +47,6 @@ return [
         'source_not_implemented' => 'Source not implemented in proxy.',
         'mediatize_fetch_error' => 'Error fetching Mediatize news.',
         'mediatize_processing_error' => 'Error processing Mediatize RSS feed.',
-        'reddit_fetch_error' => 'Error fetching Reddit news.',
-        'reddit_processing_error' => 'Error processing Reddit feed.',
         'techcrunch_fetch_error' => 'Error fetching TechCrunch news.',
         'techcrunch_processing_error' => 'Error processing TechCrunch RSS feed.',
         'import_error' => 'Error importing external content.',

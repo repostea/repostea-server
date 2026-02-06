@@ -7,20 +7,9 @@ use App\Models\SpamDetection;
 use App\Models\User;
 
 beforeEach(function (): void {
-    // Create roles
-    Role::create([
-        'name' => 'admin',
-        'slug' => 'admin',
-        'display_name' => 'Administrator',
-        'description' => 'Administrator role for testing',
-    ]);
-
-    Role::create([
-        'name' => 'moderator',
-        'slug' => 'moderator',
-        'display_name' => 'Moderator',
-        'description' => 'Moderator role for testing',
-    ]);
+    // Create roles if they don't exist
+    Role::firstOrCreate(['slug' => 'admin'], ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role']);
+    Role::firstOrCreate(['slug' => 'moderator'], ['name' => 'moderator', 'display_name' => 'Moderator', 'description' => 'Moderator role']);
 });
 
 test('non-authenticated users cannot access spam logs', function (): void {

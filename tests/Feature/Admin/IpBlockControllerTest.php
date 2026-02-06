@@ -21,13 +21,11 @@ final class IpBlockControllerTest extends TestCase
         parent::setUp();
         $this->admin = User::factory()->create();
 
-        // Create admin role and assign to user
-        $adminRole = Role::create([
-            'name' => 'admin',
-            'slug' => 'admin',
-            'display_name' => 'Administrator',
-            'description' => 'Administrator role for testing',
-        ]);
+        // Create admin role if it doesn't exist and assign to user
+        $adminRole = Role::firstOrCreate(
+            ['slug' => 'admin'],
+            ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role'],
+        );
         $this->admin->roles()->attach($adminRole);
     }
 

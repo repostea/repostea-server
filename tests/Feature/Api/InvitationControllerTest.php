@@ -288,8 +288,11 @@ final class InvitationControllerTest extends TestCase
     #[Test]
     public function it_shows_unlimited_for_admin_users(): void
     {
-        // Create admin role
-        $adminRole = Role::factory()->create(['slug' => 'admin']);
+        // Create admin role if it doesn't exist
+        $adminRole = Role::firstOrCreate(
+            ['slug' => 'admin'],
+            ['name' => 'admin', 'display_name' => 'Administrator', 'description' => 'Administrator role'],
+        );
         $this->user->roles()->attach($adminRole);
 
         // Make request
